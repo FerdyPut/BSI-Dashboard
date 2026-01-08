@@ -227,42 +227,39 @@ def sales():
         con = duckdb.connect(":memory:")
 
         # =========================
-        # FILTER OPTIONS (from data)
+        # FILTER OPTIONS (SAFE)
         # =========================
-        def get_distinct(col):
+        def get_distinct(col_sql):
             return con.execute(
                 f"""
-                SELECT DISTINCT {col}
+                SELECT DISTINCT {col_sql}
                 FROM '{PARQUET_DIR}/*.parquet'
-                WHERE {col} IS NOT NULL
-                ORDER BY {col}
+                WHERE {col_sql} IS NOT NULL
+                ORDER BY {col_sql}
                 """
-            ).df()[col].dropna().tolist()
+            ).df().iloc[:, 0].dropna().tolist()
 
         filters = {
-            "REGION": st.multiselect("REGION", get_distinct("REGION")),
-            "DISTRIBUTOR": st.multiselect("DISTRIBUTOR", get_distinct("DISTRIBUTOR")),
-            "AREA": st.multiselect("AREA", get_distinct("AREA")),
-            "SALES OFFICE": st.multiselect("SALES OFFICE", get_distinct('"SALES OFFICE"')),
-            "GROUP": st.multiselect("GROUP", get_distinct('"GROUP"')),
-            "TIPE": st.multiselect("TIPE", get_distinct("TIPE")),
+            label: st.multiselect(label, get_distinct(col_sql))
+            for label, col_sql in FILTER_COLUMNS.items()
         }
 
         # =========================
         # BUILD WHERE CLAUSE
         # =========================
         where_clause = []
-        for col, values in filters.items():
+        for label, values in filters.items():
             if values:
-                quoted = ", ".join([f"'{v}'" for v in values])
-                where_clause.append(f"{col} IN ({quoted})")
+                col_sql = FILTER_COLUMNS[label]
+                quoted_vals = ", ".join([f"'{v}'" for v in values])
+                where_clause.append(f"{col_sql} IN ({quoted_vals})")
 
         where_sql = " AND ".join(where_clause)
         if where_sql:
             where_sql = "AND " + where_sql
 
         # =========================
-        # PIVOT QUERY (3 BULAN)
+        # PIVOT 3 BULAN TERAKHIR
         # =========================
         query = f"""
         WITH base AS (
@@ -292,7 +289,7 @@ def sales():
         df_pivot = con.execute(query).df()
 
         # =========================
-        # RENAME COLUMNS (YYYY-MM)
+        # RENAME BULAN → YYYY-MM
         # =========================
         df_pivot.columns = [
             "SKU" if c == "SKU" else str(c)[:7]
@@ -300,5 +297,3 @@ def sales():
         ]
 
         st.dataframe(df_pivot, use_container_width=True)
-
-
