@@ -390,7 +390,6 @@ def sales():
             if c != "SKU":
                 df_display[c] = df_display[c].apply(format_rupiah)
 
-        st.dataframe(df_display, use_container_width=True)
         st.dataframe(
             df_display.style.apply(
                 lambda r: ["font-weight: bold"] * len(r)
