@@ -3,6 +3,7 @@ import pandas as pd
 from pathlib import Path
 import duckdb
 import uuid
+import shutil
 
 PARQUET_DIR = Path("data/parquet/sales")
 PARQUET_DIR.mkdir(parents=True, exist_ok=True)
@@ -107,6 +108,20 @@ def sales():
                 st.success("✅ Semua file berhasil di-append ke dataset")
                 st.session_state.file_map = {}
 
+            
+            # =====================
+            # RESET DATASET
+            # =====================
+            st.divider()
+            st.subheader("🧹 Reset Dataset")
+
+            if st.button("⚠️ Hapus SEMUA Data Parquet"):
+                shutil.rmtree(PARQUET_DIR)
+                PARQUET_DIR.mkdir(parents=True, exist_ok=True)
+
+                st.session_state.file_map = {}
+                st.success("✅ Dataset berhasil di-reset. Silakan import ulang.")
+
     # ==================================================
     # TAB 2 — VIEW + METRIC
     # ==================================================
@@ -148,7 +163,7 @@ def sales():
         df_preview = con.execute(
             f"SELECT * FROM '{PARQUET_DIR}/*.parquet' LIMIT 1000"
         ).df()
-        
+
         st.caption("Preview 1.000 baris pertama")
         st.dataframe(df_preview, use_container_width=True)
 
