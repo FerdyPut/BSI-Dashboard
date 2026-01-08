@@ -217,7 +217,7 @@ def sales():
     # TAB 3 — ANALYTICS
     # ==================================================
     with tab3:
-        st.subheader("📈 Analytics – SKU 3 Bulan Terakhir")
+        st.subheader("📈 Analytics – SKU (3 Bulan Terakhir)")
 
         parquet_files = list(PARQUET_DIR.glob("*.parquet"))
         if not parquet_files:
@@ -249,15 +249,59 @@ def sales():
             ).df().iloc[:, 0].dropna().tolist()
 
         # =========================
-        # FILTER UI
+        # FILTER UI (DIMENSI)
         # =========================
+        st.markdown("### 🔎 Filter Data")
         filters = {
             label: st.multiselect(label, get_distinct(col_sql))
             for label, col_sql in FILTER_COLUMNS.items()
         }
 
         # =========================
-        # WHERE CLAUSE
+        # FILTER BULAN & TAHUN
+        # =========================
+        st.markdown("### 📅 Periode")
+
+        years = con.execute(
+            f"""
+            SELECT DISTINCT
+                EXTRACT(YEAR FROM
+                    CASE
+                        WHEN TRY_CAST(Tanggal AS INTEGER) IS NOT NULL
+                            THEN DATE '1899-12-30' + CAST(Tanggal AS INTEGER)
+                        ELSE TRY_CAST(Tanggal AS DATE)
+                    END
+                ) AS year
+            FROM '{PARQUET_DIR}/*.parquet'
+            ORDER BY year
+            """
+        ).df()["year"].dropna().astype(int).tolist()
+
+        coly, colm = st.columns(2)
+
+        year = coly.selectbox("Tahun", years, index=len(years) - 1)
+
+        month_names = [
+            "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+            "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+        ]
+        month_map = {name: i + 1 for i, name in enumerate(month_names)}
+
+        month_name = colm.selectbox("Bulan Akhir", month_names, index=date.today().month - 1)
+        month = month_map[month_name]
+
+        # =========================
+        # HITUNG 3 BULAN
+        # =========================
+        end_month = date(year, month, 1)
+        months = [
+            end_month - relativedelta(months=2),
+            end_month - relativedelta(months=1),
+            end_month
+        ]
+
+        # =========================
+        # BUILD WHERE CLAUSE
         # =========================
         where_clause = []
         for label, values in filters.items():
@@ -271,7 +315,7 @@ def sales():
             where_sql = "AND " + where_sql
 
         # =========================
-        # CONDITIONAL AGG QUERY
+        # QUERY (CONDITIONAL AGG)
         # =========================
         query = f"""
         SELECT
@@ -279,53 +323,40 @@ def sales():
 
             SUM(
                 CASE
-                    WHEN DATE_TRUNC(
-                        'month',
-                        CASE
-                            WHEN TRY_CAST(Tanggal AS INTEGER) IS NOT NULL
-                                THEN DATE '1899-12-30' + CAST(Tanggal AS INTEGER)
-                            ELSE TRY_CAST(Tanggal AS DATE)
-                        END
-                    ) = DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '2 months'
+                    WHEN DATE_TRUNC('month', d) = DATE '{months[0]}'
                     THEN TRY_CAST(Value AS DOUBLE)
                 END
-            ) AS month_1,
+            ) AS m1,
 
             SUM(
                 CASE
-                    WHEN DATE_TRUNC(
-                        'month',
-                        CASE
-                            WHEN TRY_CAST(Tanggal AS INTEGER) IS NOT NULL
-                                THEN DATE '1899-12-30' + CAST(Tanggal AS INTEGER)
-                            ELSE TRY_CAST(Tanggal AS DATE)
-                        END
-                    ) = DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '1 month'
+                    WHEN DATE_TRUNC('month', d) = DATE '{months[1]}'
                     THEN TRY_CAST(Value AS DOUBLE)
                 END
-            ) AS month_2,
+            ) AS m2,
 
             SUM(
                 CASE
-                    WHEN DATE_TRUNC(
-                        'month',
-                        CASE
-                            WHEN TRY_CAST(Tanggal AS INTEGER) IS NOT NULL
-                                THEN DATE '1899-12-30' + CAST(Tanggal AS INTEGER)
-                            ELSE TRY_CAST(Tanggal AS DATE)
-                        END
-                    ) = DATE_TRUNC('month', CURRENT_DATE)
+                    WHEN DATE_TRUNC('month', d) = DATE '{months[2]}'
                     THEN TRY_CAST(Value AS DOUBLE)
                 END
-            ) AS month_3
+            ) AS m3
 
-        FROM '{PARQUET_DIR}/*.parquet'
+        FROM (
+            SELECT
+                SKU,
+                TRY_CAST(Value AS DOUBLE) AS Value,
+                CASE
+                    WHEN TRY_CAST(Tanggal AS INTEGER) IS NOT NULL
+                        THEN DATE '1899-12-30' + CAST(Tanggal AS INTEGER)
+                    ELSE TRY_CAST(Tanggal AS DATE)
+                END AS d,
+                *
+            FROM '{PARQUET_DIR}/*.parquet'
+        )
         WHERE
-            CASE
-                WHEN TRY_CAST(Tanggal AS INTEGER) IS NOT NULL
-                    THEN DATE '1899-12-30' + CAST(Tanggal AS INTEGER)
-                ELSE TRY_CAST(Tanggal AS DATE)
-            END >= DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '2 months'
+            d >= DATE '{months[0]}'
+            AND d < DATE '{months[2]}' + INTERVAL '1 month'
             {where_sql}
 
         GROUP BY SKU
@@ -335,20 +366,13 @@ def sales():
         df = con.execute(query).df()
 
         # =========================
-        # RENAME COLUMN → YYYY-MM
+        # RENAME COLUMNS
         # =========================
-        months = con.execute("""
-            SELECT
-                DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '2 months' AS m1,
-                DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '1 month' AS m2,
-                DATE_TRUNC('month', CURRENT_DATE) AS m3
-        """).df()
-
         df.columns = [
             "SKU",
-            str(months.loc[0, "m1"])[:7],
-            str(months.loc[0, "m2"])[:7],
-            str(months.loc[0, "m3"])[:7],
+            months[0].strftime("%Y-%m"),
+            months[1].strftime("%Y-%m"),
+            months[2].strftime("%Y-%m"),
         ]
 
         st.dataframe(df, use_container_width=True)
