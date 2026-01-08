@@ -325,19 +325,26 @@ def sales():
         month_exprs = []
         month_labels = []
 
+        end_index = tahun_akhir * 12 + bulan_akhir
+        start_index = end_index - 11
+        
         for y, m in periods:
             label = f"{y}-{m:02d}"
             month_labels.append(label)
 
             month_exprs.append(f"""
-                SUM(
-                    CASE
-                        WHEN TAHUN = {y} AND MONTH = {m}
-                        THEN TRY_CAST(Value AS DOUBLE)
-                    END
-                ) AS "{label}"
+                (
+                    SUM(
+                        CASE
+                            WHEN (TAHUN * 12 + MONTH)
+                                BETWEEN {start_index} AND {end_index}
+                            THEN TRY_CAST(Value AS DOUBLE)
+                        END
+                    ) / 12
+                ) AS "AVG_12M"
             """)
 
+        
         # =========================
         # FINAL QUERY + GRAND TOTAL
         # =========================
@@ -356,7 +363,8 @@ def sales():
                 {",".join([
                     f'SUM("{lbl}") AS "{lbl}"'
                     for lbl in month_labels
-                ])}
+                ])},
+                AVG("AVG_12M") AS "AVG_12M"
             FROM base
         ),
         final AS (
