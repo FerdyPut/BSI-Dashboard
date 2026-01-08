@@ -14,7 +14,7 @@ st.set_page_config(page_title="Excel → Parquet Viewer", layout="wide")
 # =====================================
 # APP
 # =====================================
-def app():
+def sales():
 
     tab1, tab2 = st.tabs(["📥 Import Excel", "👀 View Parquet"])
 
