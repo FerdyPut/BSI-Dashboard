@@ -22,7 +22,7 @@ PARQUET_DIR.mkdir(parents=True, exist_ok=True)
 # =========================
 def sales():
 
-    tab1, tab2 = st.tabs(["📥 Import Data", "📊 View & Download"])
+    tab1, tab2, tab3 = st.tabs(["📥 Import Data", "📊 View & Download", "Analytics"])
 
     # ==================================================
     # TAB 1 — IMPORT
@@ -213,5 +213,92 @@ def sales():
                         file_name=Path(out).name,
                         mime="application/octet-stream"
                     )
+    # ==================================================
+    # TAB 3 — ANALYTICS
+    # ==================================================
+    with tab3:
+        st.subheader("📈 Analytics – Pivot 3 Bulan Terakhir")
+
+        parquet_files = list(PARQUET_DIR.glob("*.parquet"))
+        if not parquet_files:
+            st.warning("⚠️ Dataset kosong")
+            st.stop()
+
+        con = duckdb.connect(":memory:")
+
+        # =========================
+        # FILTER OPTIONS (from data)
+        # =========================
+        def get_distinct(col):
+            return con.execute(
+                f"""
+                SELECT DISTINCT {col}
+                FROM '{PARQUET_DIR}/*.parquet'
+                WHERE {col} IS NOT NULL
+                ORDER BY {col}
+                """
+            ).df()[col].dropna().tolist()
+
+        filters = {
+            "REGION": st.multiselect("REGION", get_distinct("REGION")),
+            "DISTRIBUTOR": st.multiselect("DISTRIBUTOR", get_distinct("DISTRIBUTOR")),
+            "AREA": st.multiselect("AREA", get_distinct("AREA")),
+            "SALES OFFICE": st.multiselect("SALES OFFICE", get_distinct('"SALES OFFICE"')),
+            "GROUP": st.multiselect("GROUP", get_distinct('"GROUP"')),
+            "TIPE": st.multiselect("TIPE", get_distinct("TIPE")),
+        }
+
+        # =========================
+        # BUILD WHERE CLAUSE
+        # =========================
+        where_clause = []
+        for col, values in filters.items():
+            if values:
+                quoted = ", ".join([f"'{v}'" for v in values])
+                where_clause.append(f"{col} IN ({quoted})")
+
+        where_sql = " AND ".join(where_clause)
+        if where_sql:
+            where_sql = "AND " + where_sql
+
+        # =========================
+        # PIVOT QUERY (3 BULAN)
+        # =========================
+        query = f"""
+        WITH base AS (
+            SELECT
+                SKU,
+                DATE_TRUNC('month', CAST(Tanggal AS DATE)) AS bulan,
+                TRY_CAST(Value AS DOUBLE) AS value
+            FROM '{PARQUET_DIR}/*.parquet'
+            WHERE
+                CAST(Tanggal AS DATE) >=
+                    DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '2 months'
+                {where_sql}
+        )
+        SELECT *
+        FROM base
+        PIVOT (
+            SUM(value)
+            FOR bulan IN (
+                DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '2 months',
+                DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '1 month',
+                DATE_TRUNC('month', CURRENT_DATE)
+            )
+        )
+        ORDER BY SKU
+        """
+
+        df_pivot = con.execute(query).df()
+
+        # =========================
+        # RENAME COLUMNS (YYYY-MM)
+        # =========================
+        df_pivot.columns = [
+            "SKU" if c == "SKU" else str(c)[:7]
+            for c in df_pivot.columns
+        ]
+
+        st.dataframe(df_pivot, use_container_width=True)
 
 
