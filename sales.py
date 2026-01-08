@@ -217,7 +217,7 @@ def sales():
     # TAB 3 — ANALYTICS
     # ==================================================
     with tab3:
-        st.subheader("📊 Analytics — 3 Bulan Terakhir + AVG 12M")
+        st.subheader("📊 Analytics Advanced")
 
         con = duckdb.connect(":memory:")
 
