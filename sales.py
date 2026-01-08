@@ -325,24 +325,35 @@ def sales():
         month_exprs = []
         month_labels = []
 
-        end_index = tahun_akhir * 12 + bulan_akhir
-        start_index = end_index - 11
-        
+        # 3 bulan terakhir
         for y, m in periods:
             label = f"{y}-{m:02d}"
             month_labels.append(label)
 
             month_exprs.append(f"""
-                (
-                    SUM(
-                        CASE
-                            WHEN (TAHUN * 12 + MONTH)
-                                BETWEEN {start_index} AND {end_index}
-                            THEN TRY_CAST(Value AS DOUBLE)
-                        END
-                    ) / 12
-                ) AS "AVG_12M"
+                SUM(
+                    CASE
+                        WHEN TAHUN = {y} AND MONTH = {m}
+                        THEN TRY_CAST(Value AS DOUBLE)
+                    END
+                ) AS "{label}"
             """)
+
+        # =========================
+        # Tambahkan 1 kolom AVG_12M di LUAR loop
+        # =========================
+        end_index = tahun_akhir * 12 + bulan_akhir
+        start_index = end_index - 11
+
+        month_exprs.append(f"""
+            SUM(
+                CASE
+                    WHEN (TAHUN * 12 + MONTH)
+                        BETWEEN {start_index} AND {end_index}
+                    THEN TRY_CAST(Value AS DOUBLE)
+                END
+            ) / 12 AS "AVG_12M"
+        """)
 
         
         # =========================
