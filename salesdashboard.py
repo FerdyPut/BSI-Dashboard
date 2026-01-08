@@ -52,5 +52,5 @@ if selected == "Introduction":
 
     """, unsafe_allow_html=True)
 elif selected == "Dashboard Sales":
-    import salesdashboard
-    salesdashboard.salesdashboard()
+    import sales
+    sales.sales()
