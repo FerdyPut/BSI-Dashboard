@@ -217,7 +217,7 @@ def sales():
     # TAB 3 — ANALYTICS
     # ==================================================
     with tab3:
-        st.subheader("📊 Analytics — 3 Bulan Terakhir")
+        st.subheader("📊 Analytics — 3 Bulan Terakhir + AVG 12M")
 
         con = duckdb.connect(":memory:")
 
@@ -262,39 +262,22 @@ def sales():
         # =========================
         # PERIODE (BULAN & TAHUN)
         # =========================
-        max_year, max_month = con.execute(
-            f"""
-            SELECT
-                MAX(TAHUN) AS max_year,
-                MAX(MONTH) AS max_month
-            FROM '{PARQUET_DIR}/*.parquet'
-            """
-        ).fetchone()
-
-        tahun_akhir = st.selectbox(
-            "Tahun Terakhir (Closed Month)",
-            sorted(
-                con.execute(
-                    f"SELECT DISTINCT TAHUN FROM '{PARQUET_DIR}/*.parquet'"
-                ).df()["TAHUN"]
-            ),
-            index=0
+        tahun_options = sorted(
+            con.execute(f"SELECT DISTINCT TAHUN FROM '{PARQUET_DIR}/*.parquet'").df()["TAHUN"]
         )
 
-        bulan_akhir = st.selectbox(
-            "Bulan Terakhir (Closed Month)",
-            list(range(1, 13)),
-            index=11
-        )
+        tahun_akhir = st.selectbox("Tahun Terakhir (Closed Month)", tahun_options, index=len(tahun_options)-1)
+        tahun_akhir = int(tahun_akhir)
+
+        bulan_akhir = st.selectbox("Bulan Terakhir (Closed Month)", list(range(1, 13)), index=11)
+        bulan_akhir = int(bulan_akhir)
 
         # =========================
-        # HITUNG 3 BULAN TERAKHIR (EXCLUDE BULAN AKHIR)
+        # HITUNG 3 BULAN TERAKHIR (exclude bulan akhir)
         # =========================
         periods = []
-
         start_month = bulan_akhir - 1
         start_year = tahun_akhir
-
         if start_month == 0:
             start_month = 12
             start_year -= 1
@@ -311,7 +294,6 @@ def sales():
         # WHERE FILTER SQL
         # =========================
         where_clauses = []
-
         for col, vals in filters.items():
             if vals:
                 safe_vals = ",".join([f"'{v}'" for v in vals])
@@ -339,9 +321,7 @@ def sales():
                 ) AS "{label}"
             """)
 
-        # =========================
-        # Tambahkan 1 kolom AVG_12M di LUAR loop
-        # =========================
+        # rolling 12 bulan -> AVG_12M
         end_index = tahun_akhir * 12 + bulan_akhir
         start_index = end_index - 11
 
@@ -355,7 +335,6 @@ def sales():
             ) / 12 AS "AVG_12M"
         """)
 
-        
         # =========================
         # FINAL QUERY + GRAND TOTAL
         # =========================
@@ -372,8 +351,7 @@ def sales():
             SELECT
                 'GRAND TOTAL' AS SKU,
                 {",".join([
-                    f'SUM("{lbl}") AS "{lbl}"'
-                    for lbl in month_labels
+                    f'SUM("{lbl}") AS "{lbl}"' for lbl in month_labels
                 ])},
                 AVG("AVG_12M") AS "AVG_12M"
             FROM base
@@ -392,27 +370,26 @@ def sales():
 
         df = con.execute(sql).df()
 
-        st.caption(
-            f"Periode: {month_labels[0]} → {month_labels[-1]} (Closed Month)"
-        )
-
-
+        # =========================
+        # FORMAT RUPIAH
+        # =========================
         def format_rupiah(x):
             if pd.isna(x):
                 return "-"
             return f"Rp {x:,.0f}".replace(",", ".")
 
-        # copy untuk display
         df_display = df.copy()
-
         for c in df_display.columns:
             if c != "SKU":
                 df_display[c] = df_display[c].apply(format_rupiah)
 
+        # =========================
+        # SHOW TABLE
+        # =========================
+        st.caption(f"Periode Pivot: {month_labels[0]} → {month_labels[-1]} (Closed Month)")
         st.dataframe(
             df_display.style.apply(
-                lambda r: ["font-weight: bold"] * len(r)
-                if r["SKU"] == "GRAND TOTAL" else ["" for _ in r],
+                lambda r: ["font-weight: bold"]*len(r) if r["SKU"]=="GRAND TOTAL" else [""]*len(r),
                 axis=1
             ),
             use_container_width=True
