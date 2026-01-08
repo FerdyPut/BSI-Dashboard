@@ -342,6 +342,11 @@ def sales():
             ) / 12 AS "Average Sales Per Tahun"
         """)
 
+        # AVG 3 BULAN TERAKHIR → tambahkan setelah AVG_12M
+        month_exprs.append(f"""
+            ({' + '.join([f'"{lbl}"' for lbl in month_labels])}) / 3 AS "Average Sales Per 3 Bulan terakhir"
+        """)
+
         # =========================
         # FINAL QUERY + GRAND TOTAL
         # =========================
@@ -358,7 +363,8 @@ def sales():
             SELECT
                 'GRAND TOTAL' AS SKU,
                 {",".join([f'SUM("{lbl}") AS "{lbl}"' for lbl in month_labels])},
-                AVG("Average Sales Per Tahun") AS "Average Sales Per Tahun"
+                AVG("Average Sales Per Tahun") AS "Average Sales Per Tahun",
+                AVG("Average Sales Per 3 Bulan terakhir") AS "Average Sales Per 3 Bulan terakhir"
             FROM base
         ),
         final AS (
