@@ -339,7 +339,7 @@ def sales():
                         BETWEEN {start_index} AND {end_index}
                     THEN TRY_CAST(Value AS DOUBLE)
                 END
-            ) / 12 AS "AVG_12M"
+            ) / 12 AS "Average Sales Per Tahun"
         """)
 
         # =========================
