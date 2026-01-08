@@ -358,10 +358,14 @@ def sales():
                     for lbl in month_labels
                 ])}
             FROM base
+        ),
+        final AS (
+            SELECT * FROM base
+            UNION ALL
+            SELECT * FROM grand_total
         )
-        SELECT * FROM base
-        UNION ALL
-        SELECT * FROM grand_total
+        SELECT *
+        FROM final
         ORDER BY
             CASE WHEN SKU = 'GRAND TOTAL' THEN 1 ELSE 0 END,
             SKU
