@@ -367,7 +367,7 @@ def sales():
         SELECT *
         FROM final
         ORDER BY
-            CASE WHEN SKU = 'GRAND TOTAL' THEN 1 ELSE 0 END,
+            CASE WHEN SKU = 'GRAND TOTAL' THEN 0 ELSE 1 END,
             SKU
         """
 
@@ -377,4 +377,25 @@ def sales():
             f"Periode: {month_labels[0]} → {month_labels[-1]} (Closed Month)"
         )
 
-        st.dataframe(df, use_container_width=True)
+
+        def format_rupiah(x):
+            if pd.isna(x):
+                return "-"
+            return f"Rp {x:,.0f}".replace(",", ".")
+
+        # copy untuk display
+        df_display = df.copy()
+
+        for c in df_display.columns:
+            if c != "SKU":
+                df_display[c] = df_display[c].apply(format_rupiah)
+
+        st.dataframe(df_display, use_container_width=True)
+        st.dataframe(
+            df_display.style.apply(
+                lambda r: ["font-weight: bold"] * len(r)
+                if r["SKU"] == "GRAND TOTAL" else ["" for _ in r],
+                axis=1
+            ),
+            use_container_width=True
+        )
