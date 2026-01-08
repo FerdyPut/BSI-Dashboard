@@ -148,7 +148,66 @@ def sales():
         df_preview = con.execute(
             f"SELECT * FROM '{PARQUET_DIR}/*.parquet' LIMIT 1000"
         ).df()
-
+        
+        st.caption("Preview 1.000 baris pertama")
         st.dataframe(df_preview, use_container_width=True)
+
+
+
+
+        # ==========================
+        # SCHEMA
+        # ==========================
+        st.caption("Schema Dataset")
+        st.code(
+            con.execute(
+                f"DESCRIBE SELECT * FROM '{PARQUET_DIR}/*.parquet'"
+            ).df()
+        )
+
+        st.divider()
+
+        # ==========================
+        # DOWNLOAD ALL DATA
+        # ==========================
+        st.subheader("⬇️ Download All Data")
+
+        download_format = st.selectbox(
+            "Pilih format download",
+            ["Parquet (recommended)", "CSV"]
+        )
+
+        if st.button("⬇️ Generate Download File"):
+
+            with tempfile.NamedTemporaryFile(delete=False) as tmp:
+
+                if download_format == "Parquet (recommended)":
+                    out_path = tmp.name + ".parquet"
+                    con.execute(f"""
+                        COPY (
+                            SELECT * FROM '{PARQUET_DIR}/*.parquet'
+                        )
+                        TO '{out_path}'
+                        (FORMAT PARQUET)
+                    """)
+
+                else:
+                    out_path = tmp.name + ".csv"
+                    con.execute(f"""
+                        COPY (
+                            SELECT * FROM '{PARQUET_DIR}/*.parquet'
+                        )
+                        TO '{out_path}'
+                        (HEADER, DELIMITER ',')
+                    """)
+
+                with open(out_path, "rb") as f:
+                    st.download_button(
+                        label="⬇️ Download File",
+                        data=f,
+                        file_name=Path(out_path).name,
+                        mime="application/octet-stream"
+                    )
+
 
 
