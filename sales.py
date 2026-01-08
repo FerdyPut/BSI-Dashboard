@@ -277,9 +277,17 @@ def sales():
         # HITUNG 3 BULAN TERAKHIR
         # =========================
         periods = []
+
+        start_month = bulan_akhir - 1
+        start_year = tahun_akhir
+
+        if start_month == 0:
+            start_month = 12
+            start_year -= 1
+
         for i in [2, 1, 0]:
-            m = bulan_akhir - i
-            y = tahun_akhir
+            m = start_month - i
+            y = start_year
             if m <= 0:
                 m += 12
                 y -= 1
