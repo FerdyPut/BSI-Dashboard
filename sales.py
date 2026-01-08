@@ -16,7 +16,7 @@ def sales():
 
         uploaded_files = st.file_uploader(
             "Upload file Excel",
-            type=["xlsx", "xls"],
+            type=["xlsx", "xls", "xlsb"],
             accept_multiple_files=True
         )
 
@@ -45,8 +45,13 @@ def sales():
     # TAB 2 — DASHBOARD
     # =========================
     with tab2:
-
         st.title("📊 Sales Dashboard")
+
+        parquet_files = list(Path("data/parquet").glob("*.parquet"))
+
+        if not parquet_files:
+            st.warning("⚠️ Belum ada data. Silakan upload Excel di tab Import Data.")
+            st.stop()
 
         @st.cache_data
         def query(sql):
@@ -59,7 +64,8 @@ def sales():
                 Cabang,
                 SUM(Qty) AS total_qty,
                 SUM(Value) AS total_value
-            FROM 'data/parquet/sales_{year}.parquet'
+            FROM 'data/parquet/*.parquet'
+            WHERE year(Tanggal) = {year}
             GROUP BY Cabang
         """)
 
