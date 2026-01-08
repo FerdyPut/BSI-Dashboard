@@ -5,14 +5,17 @@ import duckdb
 
 def sales():
 
-    tab1, tab2 = st.tabs(["📥 Import Data", "📊 View Data"])
+    tab1, tab2 = st.tabs(["📥 Import Data", "👀 View Data"])
+
+    out = Path("data/parquet")
+    out.mkdir(parents=True, exist_ok=True)
 
     # =========================
     # TAB 1 — IMPORT DATA
     # =========================
     with tab1:
 
-        st.subheader("Upload Excel → Parquet")
+        st.subheader("Upload Excel → Parquet (View Only)")
 
         uploaded_files = st.file_uploader(
             "Upload file Excel",
@@ -20,53 +23,57 @@ def sales():
             accept_multiple_files=True
         )
 
-        out = Path("data/parquet")
-        out.mkdir(parents=True, exist_ok=True)
+        sheet_map = {}
 
-        if uploaded_files and st.button("▶ Generate Parquet"):
+        if uploaded_files:
+            st.markdown("### Pilih Sheet")
 
             for uploaded in uploaded_files:
-                df = pd.read_excel(uploaded)
-                df["Tanggal"] = pd.to_datetime(df["Tanggal"])
+                xls = pd.ExcelFile(uploaded)
+                sheet = st.selectbox(
+                    f"Sheet untuk **{uploaded.name}**",
+                    xls.sheet_names,
+                    key=f"sheet_{uploaded.name}"
+                )
+                sheet_map[uploaded] = sheet
 
-                year = df["Tanggal"].dt.year.mode()[0]
-                output = out / f"sales_{year}.parquet"
+        if uploaded_files and st.button("▶ Generate Parquet"):
+            for uploaded, sheet in sheet_map.items():
+                df = pd.read_excel(uploaded, sheet_name=sheet)
 
-                # append aman
-                if output.exists():
-                    old = pd.read_parquet(output)
-                    df = pd.concat([old, df], ignore_index=True)
+                # simpan apa adanya (tanpa asumsi kolom)
+                filename = uploaded.name.replace(".", "_")
+                df.to_parquet(out / f"{filename}.parquet", index=False)
 
-                df.to_parquet(output, index=False)
-
-            st.success("✅ Parquet berhasil digenerate")
+            st.success("✅ Data berhasil disimpan (view only)")
 
     # =========================
-    # TAB 2 — DASHBOARD
+    # TAB 2 — VIEW DATA
     # =========================
     with tab2:
-        st.title("📊 Sales Dashboard")
 
-        parquet_files = list(Path("data/parquet").glob("*.parquet"))
+        st.title("👀 View Data")
+
+        parquet_files = list(out.glob("*.parquet"))
 
         if not parquet_files:
-            st.warning("⚠️ Belum ada data. Silakan upload Excel di tab Import Data.")
+            st.warning("⚠️ Belum ada data. Upload Excel dulu.")
             st.stop()
 
+        selected_file = st.selectbox(
+            "Pilih dataset",
+            parquet_files,
+            format_func=lambda x: x.name
+        )
+
         @st.cache_data
-        def query(sql):
-            return duckdb.query(sql).df()
+        def load_parquet(path):
+            return duckdb.query(f"SELECT * FROM '{path}' LIMIT 500").df()
 
-        year = st.selectbox("Year", [2024, 2025, 2026])
+        df = load_parquet(str(selected_file))
 
-        df = query(f"""
-            SELECT
-                Cabang,
-                SUM(Qty) AS total_qty,
-                SUM(Value) AS total_value
-            FROM 'data/parquet/*.parquet'
-            WHERE year(Tanggal) = {year}
-            GROUP BY Cabang
-        """)
-
+        st.write("Preview (500 baris pertama)")
         st.dataframe(df, use_container_width=True)
+
+        st.write("Kolom:")
+        st.code(list(df.columns))
