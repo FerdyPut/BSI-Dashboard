@@ -239,6 +239,16 @@ def sales():
                 """
             ).df().iloc[:, 0].dropna().tolist()
 
+
+        FILTER_COLUMNS = {
+            "REGION": "REGION",
+            "DISTRIBUTOR": "DISTRIBUTOR",
+            "AREA": "AREA",
+            "SALES OFFICE": '"SALES OFFICE"',
+            "GROUP": '"GROUP"',
+            "TIPE": "TIPE",
+        }
+
         filters = {
             label: st.multiselect(label, get_distinct(col_sql))
             for label, col_sql in FILTER_COLUMNS.items()
