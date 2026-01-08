@@ -263,7 +263,7 @@ def sales():
         # TAHUN & BULAN CLOSED
         # =========================
         tahun_options = sorted(
-            con.execute(f"SELECT DISTINCT TAHUN FROM '{PARQUET_DIR}/*.parquet'").df()["TAHUN"]
+            con.execute(f"SELECT DISTINCT CAST(TAHUN AS INTEGER) AS TAHUN FROM '{PARQUET_DIR}/*.parquet'").df()["TAHUN"]
         )
 
         tahun_akhir = st.selectbox(
@@ -322,7 +322,7 @@ def sales():
             month_exprs.append(f"""
                 SUM(
                     CASE
-                        WHEN TAHUN = {y} AND MONTH = {m}
+                        WHEN CAST(TAHUN AS INTEGER) = {y} AND CAST(MONTH AS INTEGER) = {m}
                         THEN TRY_CAST(Value AS DOUBLE)
                     END
                 ) AS "{label}"
@@ -335,7 +335,7 @@ def sales():
         month_exprs.append(f"""
             SUM(
                 CASE
-                    WHEN (TAHUN * 12 + MONTH)
+                    WHEN (CAST(TAHUN AS INTEGER) * 12 + CAST(MONTH AS INTEGER))
                         BETWEEN {start_index} AND {end_index}
                     THEN TRY_CAST(Value AS DOUBLE)
                 END
@@ -357,9 +357,7 @@ def sales():
         grand_total AS (
             SELECT
                 'GRAND TOTAL' AS SKU,
-                {",".join([
-                    f'SUM("{lbl}") AS "{lbl}"' for lbl in month_labels
-                ])},
+                {",".join([f'SUM("{lbl}") AS "{lbl}"' for lbl in month_labels])},
                 AVG("AVG_12M") AS "AVG_12M"
             FROM base
         ),
