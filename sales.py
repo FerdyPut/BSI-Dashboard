@@ -109,18 +109,18 @@ def sales():
                 st.session_state.file_map = {}
 
             
-            # =====================
-            # RESET DATASET
-            # =====================
-            st.divider()
-            st.subheader("🧹 Reset Dataset")
+        # =====================
+        # RESET DATASET
+        # =====================
+        st.divider()
+        st.subheader("🧹 Reset Dataset")
 
-            if st.button("⚠️ Hapus SEMUA Data Parquet"):
-                shutil.rmtree(PARQUET_DIR)
-                PARQUET_DIR.mkdir(parents=True, exist_ok=True)
+        if st.button("⚠️ Hapus SEMUA Data Parquet"):
+            shutil.rmtree(PARQUET_DIR)
+            PARQUET_DIR.mkdir(parents=True, exist_ok=True)
 
-                st.session_state.file_map = {}
-                st.success("✅ Dataset berhasil di-reset. Silakan import ulang.")
+            st.session_state.file_map = {}
+            st.success("✅ Dataset berhasil di-reset. Silakan import ulang.")
 
     # ==================================================
     # TAB 2 — VIEW + METRIC
