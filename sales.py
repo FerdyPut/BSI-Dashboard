@@ -217,7 +217,7 @@ def sales():
     # TAB 3 — ANALYTICS
     # ==================================================
     with tab3:
-        st.subheader("📈 Analytics – SKU (3 Bulan Terakhir)")
+        st.subheader("📊 Analytics – SKU (3 Bulan Terakhir)")
 
         parquet_files = list(PARQUET_DIR.glob("*.parquet"))
         if not parquet_files:
@@ -227,7 +227,7 @@ def sales():
         con = duckdb.connect(":memory:")
 
         # =========================
-        # FILTER COLUMNS (SQL SAFE)
+        # FILTER DIMENSI
         # =========================
         FILTER_COLUMNS = {
             "REGION": "REGION",
@@ -248,9 +248,6 @@ def sales():
                 """
             ).df().iloc[:, 0].dropna().tolist()
 
-        # =========================
-        # FILTER UI (DIMENSI)
-        # =========================
         st.markdown("### 🔎 Filter Data")
         filters = {
             label: st.multiselect(label, get_distinct(col_sql))
@@ -264,41 +261,29 @@ def sales():
 
         years = con.execute(
             f"""
-            SELECT DISTINCT
-                EXTRACT(YEAR FROM
-                    CASE
-                        WHEN TRY_CAST(Tanggal AS INTEGER) IS NOT NULL
-                            THEN DATE '1899-12-30' + CAST(Tanggal AS INTEGER)
-                        ELSE TRY_CAST(Tanggal AS DATE)
-                    END
-                ) AS year
+            SELECT DISTINCT TAHUN
             FROM '{PARQUET_DIR}/*.parquet'
-            ORDER BY year
+            ORDER BY TAHUN
             """
-        ).df()["year"].dropna().astype(int).tolist()
+        ).df()["TAHUN"].dropna().astype(int).tolist()
 
         coly, colm = st.columns(2)
+        tahun_akhir = coly.selectbox("Tahun", years, index=len(years) - 1)
 
-        year = coly.selectbox("Tahun", years, index=len(years) - 1)
-
-        month_names = [
-            "Januari", "Februari", "Maret", "April", "Mei", "Juni",
-            "Juli", "Agustus", "September", "Oktober", "November", "Desember"
-        ]
-        month_map = {name: i + 1 for i, name in enumerate(month_names)}
-
-        month_name = colm.selectbox("Bulan Akhir", month_names, index=date.today().month - 1)
-        month = month_map[month_name]
+        bulan_list = list(range(1, 13))
+        bulan_akhir = colm.selectbox("Bulan Akhir", bulan_list, index=bulan_list.index(1))
 
         # =========================
-        # HITUNG 3 BULAN
+        # HITUNG 3 BULAN TERAKHIR
         # =========================
-        end_month = date(year, month, 1)
-        months = [
-            end_month - relativedelta(months=2),
-            end_month - relativedelta(months=1),
-            end_month
-        ]
+        periods = []
+        for i in [2, 1, 0]:
+            m = bulan_akhir - i
+            y = tahun_akhir
+            if m <= 0:
+                m += 12
+                y -= 1
+            periods.append((y, m))
 
         # =========================
         # BUILD WHERE CLAUSE
@@ -322,41 +307,27 @@ def sales():
             SKU,
 
             SUM(
-                CASE
-                    WHEN DATE_TRUNC('month', d) = DATE '{months[0]}'
-                    THEN TRY_CAST(Value AS DOUBLE)
-                END
+                CASE WHEN TAHUN = {periods[0][0]} AND MONTH = {periods[0][1]}
+                THEN TRY_CAST(Value AS DOUBLE) END
             ) AS m1,
 
             SUM(
-                CASE
-                    WHEN DATE_TRUNC('month', d) = DATE '{months[1]}'
-                    THEN TRY_CAST(Value AS DOUBLE)
-                END
+                CASE WHEN TAHUN = {periods[1][0]} AND MONTH = {periods[1][1]}
+                THEN TRY_CAST(Value AS DOUBLE) END
             ) AS m2,
 
             SUM(
-                CASE
-                    WHEN DATE_TRUNC('month', d) = DATE '{months[2]}'
-                    THEN TRY_CAST(Value AS DOUBLE)
-                END
+                CASE WHEN TAHUN = {periods[2][0]} AND MONTH = {periods[2][1]}
+                THEN TRY_CAST(Value AS DOUBLE) END
             ) AS m3
 
-        FROM (
-            SELECT
-                SKU,
-                TRY_CAST(Value AS DOUBLE) AS Value,
-                CASE
-                    WHEN TRY_CAST(Tanggal AS INTEGER) IS NOT NULL
-                        THEN DATE '1899-12-30' + CAST(Tanggal AS INTEGER)
-                    ELSE TRY_CAST(Tanggal AS DATE)
-                END AS d,
-                *
-            FROM '{PARQUET_DIR}/*.parquet'
-        )
+        FROM '{PARQUET_DIR}/*.parquet'
         WHERE
-            d >= DATE '{months[0]}'
-            AND d < DATE '{months[2]}' + INTERVAL '1 month'
+            (
+                (TAHUN = {periods[0][0]} AND MONTH = {periods[0][1]}) OR
+                (TAHUN = {periods[1][0]} AND MONTH = {periods[1][1]}) OR
+                (TAHUN = {periods[2][0]} AND MONTH = {periods[2][1]})
+            )
             {where_sql}
 
         GROUP BY SKU
@@ -370,9 +341,9 @@ def sales():
         # =========================
         df.columns = [
             "SKU",
-            months[0].strftime("%Y-%m"),
-            months[1].strftime("%Y-%m"),
-            months[2].strftime("%Y-%m"),
+            f"{periods[0][0]}-{periods[0][1]:02d}",
+            f"{periods[1][0]}-{periods[1][1]:02d}",
+            f"{periods[2][0]}-{periods[2][1]:02d}",
         ]
 
         st.dataframe(df, use_container_width=True)
