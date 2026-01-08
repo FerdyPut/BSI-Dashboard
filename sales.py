@@ -279,32 +279,53 @@ def sales():
 
             SUM(
                 CASE
-                    WHEN DATE_TRUNC('month', CAST(Tanggal AS DATE))
-                        = DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '2 months'
+                    WHEN DATE_TRUNC(
+                        'month',
+                        CASE
+                            WHEN TRY_CAST(Tanggal AS INTEGER) IS NOT NULL
+                                THEN DATE '1899-12-30' + CAST(Tanggal AS INTEGER)
+                            ELSE TRY_CAST(Tanggal AS DATE)
+                        END
+                    ) = DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '2 months'
                     THEN TRY_CAST(Value AS DOUBLE)
                 END
             ) AS month_1,
 
             SUM(
                 CASE
-                    WHEN DATE_TRUNC('month', CAST(Tanggal AS DATE))
-                        = DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '1 month'
+                    WHEN DATE_TRUNC(
+                        'month',
+                        CASE
+                            WHEN TRY_CAST(Tanggal AS INTEGER) IS NOT NULL
+                                THEN DATE '1899-12-30' + CAST(Tanggal AS INTEGER)
+                            ELSE TRY_CAST(Tanggal AS DATE)
+                        END
+                    ) = DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '1 month'
                     THEN TRY_CAST(Value AS DOUBLE)
                 END
             ) AS month_2,
 
             SUM(
                 CASE
-                    WHEN DATE_TRUNC('month', CAST(Tanggal AS DATE))
-                        = DATE_TRUNC('month', CURRENT_DATE)
+                    WHEN DATE_TRUNC(
+                        'month',
+                        CASE
+                            WHEN TRY_CAST(Tanggal AS INTEGER) IS NOT NULL
+                                THEN DATE '1899-12-30' + CAST(Tanggal AS INTEGER)
+                            ELSE TRY_CAST(Tanggal AS DATE)
+                        END
+                    ) = DATE_TRUNC('month', CURRENT_DATE)
                     THEN TRY_CAST(Value AS DOUBLE)
                 END
             ) AS month_3
 
         FROM '{PARQUET_DIR}/*.parquet'
         WHERE
-            CAST(Tanggal AS DATE) >=
-                DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '2 months'
+            CASE
+                WHEN TRY_CAST(Tanggal AS INTEGER) IS NOT NULL
+                    THEN DATE '1899-12-30' + CAST(Tanggal AS INTEGER)
+                ELSE TRY_CAST(Tanggal AS DATE)
+            END >= DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '2 months'
             {where_sql}
 
         GROUP BY SKU
