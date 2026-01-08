@@ -243,7 +243,7 @@ def sales():
             "REGION": st.multiselect("REGION", get_distinct("REGION")),
             "DISTRIBUTOR": st.multiselect("DISTRIBUTOR", get_distinct("DISTRIBUTOR")),
             "AREA": st.multiselect("AREA", get_distinct("AREA")),
-            "SALES OFFICE": st.multiselect("SALES OFFICE", get_distinct("SALES OFFICE")),
+            "SALES OFFICE": st.multiselect("SALES OFFICE", get_distinct('"SALES OFFICE"')),
             "GROUP": st.multiselect("GROUP", get_distinct('"GROUP"')),
             "TIPE": st.multiselect("TIPE", get_distinct("TIPE")),
         }
