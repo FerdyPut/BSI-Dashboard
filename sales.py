@@ -217,64 +217,78 @@ def sales():
     # TAB 3 — ANALYTICS
     # ==================================================
     with tab3:
-        st.subheader("📊 Analytics – SKU (3 Bulan Terakhir)")
-
-        parquet_files = list(PARQUET_DIR.glob("*.parquet"))
-        if not parquet_files:
-            st.warning("⚠️ Dataset kosong")
-            st.stop()
+        st.subheader("📊 Analytics — 3 Bulan Terakhir")
 
         con = duckdb.connect(":memory:")
 
         # =========================
-        # FILTER DIMENSI
+        # HELPER: distinct values
         # =========================
-        FILTER_COLUMNS = {
-            "REGION": "REGION",
-            "DISTRIBUTOR": "DISTRIBUTOR",
-            "AREA": "AREA",
-            "SALES OFFICE": '"SALES OFFICE"',
-            "GROUP": '"GROUP"',
-            "TIPE": "TIPE",
-        }
-
-        def get_distinct(col_sql):
-            return con.execute(
-                f"""
-                SELECT DISTINCT {col_sql}
-                FROM '{PARQUET_DIR}/*.parquet'
-                WHERE {col_sql} IS NOT NULL
-                ORDER BY {col_sql}
-                """
-            ).df().iloc[:, 0].dropna().tolist()
-
-        st.markdown("### 🔎 Filter Data")
-        filters = {
-            label: st.multiselect(label, get_distinct(col_sql))
-            for label, col_sql in FILTER_COLUMNS.items()
-        }
+        @st.cache_data
+        def get_distinct(col):
+            return (
+                con.execute(
+                    f'SELECT DISTINCT "{col}" FROM \'{PARQUET_DIR}/*.parquet\' WHERE "{col}" IS NOT NULL'
+                )
+                .df()[col]
+                .dropna()
+                .sort_values()
+                .tolist()
+            )
 
         # =========================
-        # FILTER BULAN & TAHUN
+        # FILTERS
         # =========================
-        st.markdown("### 📅 Periode")
+        col1, col2, col3 = st.columns(3)
 
-        years = con.execute(
+        with col1:
+            filters = {
+                "REGION": st.multiselect("REGION", get_distinct("REGION")),
+                "DISTRIBUTOR": st.multiselect("DISTRIBUTOR", get_distinct("DISTRIBUTOR")),
+            }
+
+        with col2:
+            filters.update({
+                "AREA": st.multiselect("AREA", get_distinct("AREA")),
+                "SALES OFFICE": st.multiselect("SALES OFFICE", get_distinct("SALES OFFICE")),
+            })
+
+        with col3:
+            filters.update({
+                "GROUP": st.multiselect("GROUP", get_distinct("GROUP")),
+                "TIPE": st.multiselect("TIPE", get_distinct("TIPE")),
+            })
+
+        # =========================
+        # PERIODE (BULAN & TAHUN)
+        # =========================
+        max_year, max_month = con.execute(
             f"""
-            SELECT DISTINCT TAHUN
+            SELECT
+                MAX(TAHUN) AS max_year,
+                MAX(MONTH) AS max_month
             FROM '{PARQUET_DIR}/*.parquet'
-            ORDER BY TAHUN
             """
-        ).df()["TAHUN"].dropna().astype(int).tolist()
+        ).fetchone()
 
-        coly, colm = st.columns(2)
-        tahun_akhir = coly.selectbox("Tahun", years, index=len(years) - 1)
+        tahun_akhir = st.selectbox(
+            "Tahun Terakhir (Closed Month)",
+            sorted(
+                con.execute(
+                    f"SELECT DISTINCT TAHUN FROM '{PARQUET_DIR}/*.parquet'"
+                ).df()["TAHUN"]
+            ),
+            index=0
+        )
 
-        bulan_list = list(range(1, 13))
-        bulan_akhir = colm.selectbox("Bulan Akhir", bulan_list, index=bulan_list.index(1))
+        bulan_akhir = st.selectbox(
+            "Bulan Terakhir (Closed Month)",
+            list(range(1, 13)),
+            index=11
+        )
 
         # =========================
-        # HITUNG 3 BULAN TERAKHIR
+        # HITUNG 3 BULAN TERAKHIR (EXCLUDE BULAN AKHIR)
         # =========================
         periods = []
 
@@ -294,64 +308,69 @@ def sales():
             periods.append((y, m))
 
         # =========================
-        # BUILD WHERE CLAUSE
+        # WHERE FILTER SQL
         # =========================
-        where_clause = []
-        for label, values in filters.items():
-            if values:
-                col_sql = FILTER_COLUMNS[label]
-                quoted = ", ".join([f"'{v}'" for v in values])
-                where_clause.append(f"{col_sql} IN ({quoted})")
+        where_clauses = []
 
-        where_sql = " AND ".join(where_clause)
-        if where_sql:
-            where_sql = "AND " + where_sql
+        for col, vals in filters.items():
+            if vals:
+                safe_vals = ",".join([f"'{v}'" for v in vals])
+                where_clauses.append(f'"{col}" IN ({safe_vals})')
+
+        where_sql = "WHERE " + " AND ".join(where_clauses) if where_clauses else ""
 
         # =========================
-        # QUERY (CONDITIONAL AGG)
+        # BUILD PIVOT COLUMNS
         # =========================
-        query = f"""
-        SELECT
-            SKU,
+        month_exprs = []
+        month_labels = []
 
-            SUM(
-                CASE WHEN TAHUN = {periods[0][0]} AND MONTH = {periods[0][1]}
-                THEN TRY_CAST(Value AS DOUBLE) END
-            ) AS m1,
+        for y, m in periods:
+            label = f"{y}-{m:02d}"
+            month_labels.append(label)
 
-            SUM(
-                CASE WHEN TAHUN = {periods[1][0]} AND MONTH = {periods[1][1]}
-                THEN TRY_CAST(Value AS DOUBLE) END
-            ) AS m2,
+            month_exprs.append(f"""
+                SUM(
+                    CASE
+                        WHEN TAHUN = {y} AND MONTH = {m}
+                        THEN TRY_CAST(Value AS DOUBLE)
+                    END
+                ) AS "{label}"
+            """)
 
-            SUM(
-                CASE WHEN TAHUN = {periods[2][0]} AND MONTH = {periods[2][1]}
-                THEN TRY_CAST(Value AS DOUBLE) END
-            ) AS m3
-
-        FROM '{PARQUET_DIR}/*.parquet'
-        WHERE
-            (
-                (TAHUN = {periods[0][0]} AND MONTH = {periods[0][1]}) OR
-                (TAHUN = {periods[1][0]} AND MONTH = {periods[1][1]}) OR
-                (TAHUN = {periods[2][0]} AND MONTH = {periods[2][1]})
-            )
+        # =========================
+        # FINAL QUERY + GRAND TOTAL
+        # =========================
+        sql = f"""
+        WITH base AS (
+            SELECT
+                SKU,
+                {",".join(month_exprs)}
+            FROM '{PARQUET_DIR}/*.parquet'
             {where_sql}
-
-        GROUP BY SKU
-        ORDER BY SKU
+            GROUP BY SKU
+        ),
+        grand_total AS (
+            SELECT
+                'GRAND TOTAL' AS SKU,
+                {",".join([
+                    f'SUM("{lbl}") AS "{lbl}"'
+                    for lbl in month_labels
+                ])}
+            FROM base
+        )
+        SELECT * FROM base
+        UNION ALL
+        SELECT * FROM grand_total
+        ORDER BY
+            CASE WHEN SKU = 'GRAND TOTAL' THEN 1 ELSE 0 END,
+            SKU
         """
 
-        df = con.execute(query).df()
+        df = con.execute(sql).df()
 
-        # =========================
-        # RENAME COLUMNS
-        # =========================
-        df.columns = [
-            "SKU",
-            f"{periods[0][0]}-{periods[0][1]:02d}",
-            f"{periods[1][0]}-{periods[1][1]:02d}",
-            f"{periods[2][0]}-{periods[2][1]:02d}",
-        ]
+        st.caption(
+            f"Periode: {month_labels[0]} → {month_labels[-1]} (Closed Month)"
+        )
 
         st.dataframe(df, use_container_width=True)
