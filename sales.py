@@ -3,19 +3,26 @@ import pandas as pd
 from pathlib import Path
 import duckdb
 
-def sales():
+# =====================================
+# CONFIG
+# =====================================
+PARQUET_DIR = Path("data/parquet")
+PARQUET_DIR.mkdir(parents=True, exist_ok=True)
 
-    tab1, tab2 = st.tabs(["📥 Import Data", "👀 View Data"])
+st.set_page_config(page_title="Excel → Parquet Viewer", layout="wide")
 
-    out = Path("data/parquet")
-    out.mkdir(parents=True, exist_ok=True)
+# =====================================
+# APP
+# =====================================
+def app():
 
-    # =========================
-    # TAB 1 — IMPORT DATA
-    # =========================
+    tab1, tab2 = st.tabs(["📥 Import Excel", "👀 View Parquet"])
+
+    # ==================================================
+    # TAB 1 — IMPORT EXCEL
+    # ==================================================
     with tab1:
-
-        st.subheader("Upload Excel → Parquet (View Only)")
+        st.subheader("Upload Excel (Multi File, Multi Sheet)")
 
         uploaded_files = st.file_uploader(
             "Upload file Excel",
@@ -23,57 +30,63 @@ def sales():
             accept_multiple_files=True
         )
 
-        sheet_map = {}
-
         if uploaded_files:
-            st.markdown("### Pilih Sheet")
-
             for uploaded in uploaded_files:
+                st.markdown(f"### 📄 {uploaded.name}")
+
+                # ambil daftar sheet
                 xls = pd.ExcelFile(uploaded)
                 sheet = st.selectbox(
-                    f"Sheet untuk **{uploaded.name}**",
+                    f"Pilih sheet untuk {uploaded.name}",
                     xls.sheet_names,
-                    key=f"sheet_{uploaded.name}"
+                    key=uploaded.name
                 )
-                sheet_map[uploaded] = sheet
 
-        if uploaded_files and st.button("▶ Generate Parquet"):
-            for uploaded, sheet in sheet_map.items():
-                df = pd.read_excel(uploaded, sheet_name=sheet)
+                if st.button(f"▶ Generate Parquet ({uploaded.name})"):
+                    df = pd.read_excel(uploaded, sheet_name=sheet)
 
-                # simpan apa adanya (tanpa asumsi kolom)
-                filename = uploaded.name.replace(".", "_")
-                df.to_parquet(out / f"{filename}.parquet", index=False)
+                    # =============================
+                    # 🔒 SAFETY LAYER (WAJIB)
+                    # =============================
+                    df = df.astype("string")  # SEMUA STRING → ANTI MIXED TYPE
 
-            st.success("✅ Data berhasil disimpan (view only)")
+                    output = PARQUET_DIR / f"{uploaded.name}_{sheet}.parquet"
+                    df.to_parquet(output, index=False)
 
-    # =========================
-    # TAB 2 — VIEW DATA
-    # =========================
+                    st.success(f"✅ Saved: {output.name}")
+
+    # ==================================================
+    # TAB 2 — VIEW PARQUET
+    # ==================================================
     with tab2:
+        st.subheader("View Parquet Data")
 
-        st.title("👀 View Data")
-
-        parquet_files = list(out.glob("*.parquet"))
+        parquet_files = sorted(PARQUET_DIR.glob("*.parquet"))
 
         if not parquet_files:
-            st.warning("⚠️ Belum ada data. Upload Excel dulu.")
+            st.warning("⚠️ Belum ada file Parquet.")
             st.stop()
 
-        selected_file = st.selectbox(
-            "Pilih dataset",
+        selected = st.selectbox(
+            "Pilih file Parquet",
             parquet_files,
             format_func=lambda x: x.name
         )
 
         @st.cache_data
         def load_parquet(path):
-            return duckdb.query(f"SELECT * FROM '{path}' LIMIT 500").df()
+            return duckdb.query(
+                f"SELECT * FROM '{path}' LIMIT 1000"
+            ).df()
 
-        df = load_parquet(str(selected_file))
+        df_view = load_parquet(selected)
 
-        st.write("Preview (500 baris pertama)")
-        st.dataframe(df, use_container_width=True)
+        st.caption("Preview 1000 baris pertama")
+        st.dataframe(df_view, use_container_width=True)
 
-        st.write("Kolom:")
-        st.code(list(df.columns))
+        st.caption("Schema")
+        st.code(
+            duckdb.query(
+                f"DESCRIBE SELECT * FROM '{selected}'"
+            ).df()
+        )
