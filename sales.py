@@ -217,7 +217,7 @@ def sales():
     # TAB 3 — ANALYTICS
     # ==================================================
     with tab3:
-        st.subheader("📈 Analytics – Pivot 3 Bulan Terakhir")
+        st.subheader("📈 Analytics – SKU 3 Bulan Terakhir")
 
         parquet_files = list(PARQUET_DIR.glob("*.parquet"))
         if not parquet_files:
@@ -227,8 +227,17 @@ def sales():
         con = duckdb.connect(":memory:")
 
         # =========================
-        # FILTER OPTIONS (SAFE)
+        # FILTER COLUMNS (SQL SAFE)
         # =========================
+        FILTER_COLUMNS = {
+            "REGION": "REGION",
+            "DISTRIBUTOR": "DISTRIBUTOR",
+            "AREA": "AREA",
+            "SALES OFFICE": '"SALES OFFICE"',
+            "GROUP": '"GROUP"',
+            "TIPE": "TIPE",
+        }
+
         def get_distinct(col_sql):
             return con.execute(
                 f"""
@@ -239,71 +248,86 @@ def sales():
                 """
             ).df().iloc[:, 0].dropna().tolist()
 
-
-        FILTER_COLUMNS = {
-            "REGION": "REGION",
-            "DISTRIBUTOR": "DISTRIBUTOR",
-            "AREA": "AREA",
-            "SALES OFFICE": '"SALES OFFICE"',
-            "GROUP": '"GROUP"',
-            "TIPE": "TIPE",
-        }
-
+        # =========================
+        # FILTER UI
+        # =========================
         filters = {
             label: st.multiselect(label, get_distinct(col_sql))
             for label, col_sql in FILTER_COLUMNS.items()
         }
 
         # =========================
-        # BUILD WHERE CLAUSE
+        # WHERE CLAUSE
         # =========================
         where_clause = []
         for label, values in filters.items():
             if values:
                 col_sql = FILTER_COLUMNS[label]
-                quoted_vals = ", ".join([f"'{v}'" for v in values])
-                where_clause.append(f"{col_sql} IN ({quoted_vals})")
+                quoted = ", ".join([f"'{v}'" for v in values])
+                where_clause.append(f"{col_sql} IN ({quoted})")
 
         where_sql = " AND ".join(where_clause)
         if where_sql:
             where_sql = "AND " + where_sql
 
         # =========================
-        # PIVOT 3 BULAN TERAKHIR
+        # CONDITIONAL AGG QUERY
         # =========================
         query = f"""
-        WITH base AS (
-            SELECT
-                SKU,
-                DATE_TRUNC('month', CAST(Tanggal AS DATE)) AS bulan,
-                TRY_CAST(Value AS DOUBLE) AS value
-            FROM '{PARQUET_DIR}/*.parquet'
-            WHERE
-                CAST(Tanggal AS DATE) >=
-                    DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '2 months'
-                {where_sql}
-        )
-        SELECT *
-        FROM base
-        PIVOT (
-            SUM(value)
-            FOR bulan IN (
-                DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '2 months',
-                DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '1 month',
-                DATE_TRUNC('month', CURRENT_DATE)
-            )
-        )
+        SELECT
+            SKU,
+
+            SUM(
+                CASE
+                    WHEN DATE_TRUNC('month', CAST(Tanggal AS DATE))
+                        = DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '2 months'
+                    THEN TRY_CAST(Value AS DOUBLE)
+                END
+            ) AS month_1,
+
+            SUM(
+                CASE
+                    WHEN DATE_TRUNC('month', CAST(Tanggal AS DATE))
+                        = DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '1 month'
+                    THEN TRY_CAST(Value AS DOUBLE)
+                END
+            ) AS month_2,
+
+            SUM(
+                CASE
+                    WHEN DATE_TRUNC('month', CAST(Tanggal AS DATE))
+                        = DATE_TRUNC('month', CURRENT_DATE)
+                    THEN TRY_CAST(Value AS DOUBLE)
+                END
+            ) AS month_3
+
+        FROM '{PARQUET_DIR}/*.parquet'
+        WHERE
+            CAST(Tanggal AS DATE) >=
+                DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '2 months'
+            {where_sql}
+
+        GROUP BY SKU
         ORDER BY SKU
         """
 
-        df_pivot = con.execute(query).df()
+        df = con.execute(query).df()
 
         # =========================
-        # RENAME BULAN → YYYY-MM
+        # RENAME COLUMN → YYYY-MM
         # =========================
-        df_pivot.columns = [
-            "SKU" if c == "SKU" else str(c)[:7]
-            for c in df_pivot.columns
+        months = con.execute("""
+            SELECT
+                DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '2 months' AS m1,
+                DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '1 month' AS m2,
+                DATE_TRUNC('month', CURRENT_DATE) AS m3
+        """).df()
+
+        df.columns = [
+            "SKU",
+            str(months.loc[0, "m1"])[:7],
+            str(months.loc[0, "m2"])[:7],
+            str(months.loc[0, "m3"])[:7],
         ]
 
-        st.dataframe(df_pivot, use_container_width=True)
+        st.dataframe(df, use_container_width=True)
