@@ -371,19 +371,27 @@ def sales():
         """)
 
         # =========================
-        # WEEKLY UPDATE (Data Terbaru)
+        # HISTORICAL SALES PER WEEK (DATA TERBARU)
         # =========================
-        # WEEKLY UPDATE (Data Terbaru)
+        # Ambil max bulan dan tahun (bulan terakhir)
+        max_m_y = con.execute(f"SELECT MAX(CAST(MONTH AS INTEGER)) AS max_month, MAX(CAST(TAHUN AS INTEGER)) AS max_year FROM '{PARQUET_DIR}/*.parquet'").fetchone()
+        max_bulan = max_m_y[0]
+        max_tahun = max_m_y[1]
+
         for w in range(1,6):
-            week_label = f"W{w} {calendar.month_abbr[bulan_akhir]}-{tahun_akhir}"
+            week_label = f"W{w} {calendar.month_abbr[max_bulan]}-{max_tahun}"
             month_exprs.append(f"""
-                MAX(
-                    CASE 
-                        WHEN STRFTIME('%U', DATE '1899-12-30' + CAST(TANGGAL AS INTEGER) * INTERVAL '1 DAY') + 1 = {w}
-                        THEN TRY_CAST(Value AS DOUBLE)
-                    END
+                SUM(
+                    COALESCE(
+                        CASE
+                            WHEN CAST(TRIM(TAHUN) AS INTEGER) = {max_tahun}
+                            AND CAST(TRIM(MONTH) AS INTEGER) = {max_bulan}
+                            AND CAST(TRIM(WEEK) AS INTEGER) = {w}
+                            THEN TRY_CAST(Value AS DOUBLE)
+                        END, 0)
                 ) AS "{week_label}"
             """)
+
         # =========================
         # FINAL QUERY + GRAND TOTAL
         # =========================
@@ -405,7 +413,7 @@ def sales():
                 {",".join([f'SUM("{lbl}") AS "{lbl}"' for lbl in month_labels])},
                 AVG("{avg12m_col}") AS "{avg12m_col}",
                 AVG("{avg3m_col}") AS "{avg3m_col}",
-                {','.join([f'AVG("W{w} {calendar.month_abbr[bulan_akhir]}-{tahun_akhir}") AS "W{w} {calendar.month_abbr[bulan_akhir]}-{tahun_akhir}"' for w in range(1,6)])}
+                {','.join([f'AVG("W{w} {calendar.month_abbr[max_bulan]}-{max_tahun}") AS "W{w} {calendar.month_abbr[max_bulan]}-{max_tahun}"' for w in range(1,6)])}
             FROM base
         ),
         final AS (
