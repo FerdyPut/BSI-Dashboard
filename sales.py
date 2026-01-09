@@ -381,7 +381,7 @@ def sales():
             SELECT
                 'GRAND TOTAL' AS SKU,
                 {",".join([f'SUM("{lbl}") AS "{lbl}"' for lbl in month_labels])},
-                AVG("Average Sales Per Tahun") AS "Average Sales Per Tahun",
+                AVG("Average Sales Per Tahun") AS {avg12m_label},
                 AVG("Average Sales Per 3 Bulan terakhir") AS "Average Sales Per 3 Bulan terakhir"
             FROM base
         ),
