@@ -371,6 +371,20 @@ def sales():
         """)
 
         # =========================
+        # WEEKLY UPDATE (Data Terbaru)
+        # =========================
+        # WEEKLY UPDATE (Data Terbaru)
+        for w in range(1,6):
+            week_label = f"W{w} {calendar.month_abbr[bulan_akhir]}-{tahun_akhir}"
+            month_exprs.append(f"""
+                MAX(
+                    CASE 
+                        WHEN STRFTIME('%U', DATE '1899-12-30' + CAST(TANGGAL AS INTEGER) * INTERVAL '1 DAY') + 1 = {w}
+                        THEN TRY_CAST(Value AS DOUBLE)
+                    END
+                ) AS "{week_label}"
+            """)
+        # =========================
         # FINAL QUERY + GRAND TOTAL
         # =========================
         #nama kolom AVG
@@ -380,7 +394,7 @@ def sales():
         WITH base AS (
             SELECT
                 SKU,
-                {",".join(month_exprs)}
+                {','.join(month_exprs)}
             FROM '{PARQUET_DIR}/*.parquet'
             {where_sql}
             GROUP BY SKU
@@ -390,7 +404,8 @@ def sales():
                 'GRAND TOTAL' AS SKU,
                 {",".join([f'SUM("{lbl}") AS "{lbl}"' for lbl in month_labels])},
                 AVG("{avg12m_col}") AS "{avg12m_col}",
-                AVG("{avg3m_col}") AS "{avg3m_col}"
+                AVG("{avg3m_col}") AS "{avg3m_col}",
+                {','.join([f'AVG("W{w} {calendar.month_abbr[bulan_akhir]}-{tahun_akhir}") AS "W{w} {calendar.month_abbr[bulan_akhir]}-{tahun_akhir}"' for w in range(1,6)])}
             FROM base
         ),
         final AS (
