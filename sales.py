@@ -333,9 +333,24 @@ def sales():
             """)
 
         # AVG 12 BULAN (rolling)
+        # Hitung start dan end bulan/tahun
+        end_year, end_month = tahun_akhir, bulan_akhir
         end_index = tahun_akhir * 12 + bulan_akhir
         start_index = end_index - 11
 
+        # start bulan/tahun
+        start_month = end_month - 11
+        start_year = end_year
+        if start_month <= 0:
+            start_month += 12
+            start_year -= 1
+
+        # Label kolom AVG 12M
+        start_label = f"{calendar.month_abbr[start_month]}-{start_year}"
+        end_label = f"{calendar.month_abbr[end_month]}-{end_year}"
+        avg12m_label = f"{start_label} → {end_label}"
+
+        # Kolom AVG 12M
         month_exprs.append(f"""
             SUM(
                 CASE
@@ -343,7 +358,7 @@ def sales():
                         BETWEEN {start_index} AND {end_index}
                     THEN TRY_CAST(Value AS DOUBLE)
                 END
-            ) / 12 AS "Average Sales Per Tahun"
+            ) / 12 AS "{avg12m_label}"
         """)
 
         # AVG 3 BULAN TERAKHIR → tambahkan setelah AVG_12M
