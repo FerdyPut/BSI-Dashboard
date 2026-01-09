@@ -348,7 +348,7 @@ def sales():
         # Label kolom AVG 12M
         start_label = f"{calendar.month_abbr[start_month]}-{start_year}"
         end_label = f"{calendar.month_abbr[end_month]}-{end_year}"
-        avg12m_label = f"{start_label} → {end_label}"
+        avg12m_label = f" Average Sales Per {start_label} until {end_label}"
 
         # Kolom AVG 12M
         month_exprs.append(f"""
@@ -365,9 +365,14 @@ def sales():
         month_exprs.append(f"""
             ({' + '.join([f'COALESCE("{lbl}",0)' for lbl in month_labels])}) / 3 AS "Average Sales Per 3 Bulan terakhir"
         """)
+        # label dinamis untuk AVG 3 bulan
+        avg3m_label = f"{month_labels[0]} → {month_labels[-1]}"
         # =========================
         # FINAL QUERY + GRAND TOTAL
         # =========================
+        #nama kolom AVG
+        avg12m_col = avg12m_label  # "Jan-2025 → Dec-2025"
+        avg3m_col = avg3m_label
         sql = f"""
         WITH base AS (
             SELECT
@@ -381,8 +386,8 @@ def sales():
             SELECT
                 'GRAND TOTAL' AS SKU,
                 {",".join([f'SUM("{lbl}") AS "{lbl}"' for lbl in month_labels])},
-                AVG("Average Sales Per Tahun") AS {avg12m_label},
-                AVG("Average Sales Per 3 Bulan terakhir") AS "Average Sales Per 3 Bulan terakhir"
+                AVG("{avg12m_col}") AS "{avg12m_col}",
+                AVG("{avg3m_col}") AS "{avg3m_col}"
             FROM base
         ),
         final AS (
