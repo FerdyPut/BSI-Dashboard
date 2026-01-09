@@ -25,6 +25,11 @@ def sales():
 
     tab1, tab2, tab3 = st.tabs(["📥 Import Data", "📊 View & Download", "Analytics"])
 
+    PARQUET_DIR = Path("data/parquet/sales")
+    EXCEL_DIR = Path("data/excel/sales")  # simpan copy excel/CSV juga
+    PARQUET_DIR.mkdir(parents=True, exist_ok=True)
+    EXCEL_DIR.mkdir(parents=True, exist_ok=True)
+
     # ==================================================
     # TAB 1 — IMPORT
     # ==================================================
@@ -84,7 +89,7 @@ def sales():
 
             for meta in st.session_state.files.values():
 
-                # read file
+                # -------- READ DATA --------
                 if meta["type"] == "excel":
                     df = pd.read_excel(
                         meta["file"],
@@ -96,17 +101,22 @@ def sales():
                         delimiter=meta["delimiter"]
                     )
 
-                # 🔒 SAFE MODE: semua STRING (anti ArrowTypeError)
+                # 🔒 SAFE MODE: semua string → anti ArrowTypeError
                 df = df.astype("string")
 
-                # metadata
+                # ------------------- SAVE TO PARQUET -------------------
                 df["_source_file"] = meta["file"].name
+                parquet_out = PARQUET_DIR / f"part-{uuid.uuid4().hex}.parquet"
+                df.to_parquet(parquet_out, index=False)
 
-                # write parquet part
-                out = PARQUET_DIR / f"part-{uuid.uuid4().hex}.parquet"
-                df.to_parquet(out, index=False)
+                # ------------------- SAVE COPY EXCEL/CSV -------------------
+                excel_out = EXCEL_DIR / meta["file"].name
+                if meta["type"] == "excel":
+                    df.to_excel(excel_out, index=False)
+                else:
+                    df.to_csv(excel_out, index=False)
 
-            st.success("✅ Semua file berhasil di-append")
+            st.success("✅ Semua file berhasil di-append (Parquet + Excel/CSV)")
             st.session_state.files = {}
 
         # =========================
@@ -115,9 +125,11 @@ def sales():
         st.divider()
         st.subheader("🧹 Reset Dataset")
 
-        if st.button("⚠️ Hapus SEMUA Data Parquet"):
+        if st.button("⚠️ Hapus SEMUA Data Parquet & Excel"):
             shutil.rmtree(PARQUET_DIR)
+            shutil.rmtree(EXCEL_DIR)
             PARQUET_DIR.mkdir(parents=True, exist_ok=True)
+            EXCEL_DIR.mkdir(parents=True, exist_ok=True)
             st.session_state.files = {}
             st.success("✅ Dataset berhasil di-reset")
 
@@ -348,7 +360,7 @@ def sales():
         # Label kolom AVG 12M
         start_label = f"{calendar.month_abbr[start_month]}-{start_year}"
         end_label = f"{calendar.month_abbr[end_month]}-{end_year}"
-        avg12m_label = f" Average Sales Per {start_label} until {end_label}"
+        avg12m_label = f" Average Sales Per ({start_label} until {end_label})"
 
         # Kolom AVG 12M
         month_exprs.append(f"""
@@ -362,11 +374,11 @@ def sales():
         """)
 
         # AVG 3 BULAN TERAKHIR → tambahkan setelah AVG_12M
+        avg3m_label = f"Average Sales Per ({month_labels[0]} until {month_labels[-1]})"
         month_exprs.append(f"""
-            ({' + '.join([f'COALESCE("{lbl}",0)' for lbl in month_labels])}) / 3 AS "Average Sales Per 3 Bulan terakhir"
+            ({' + '.join([f'COALESCE("{lbl}",0)' for lbl in month_labels])}) / 3 AS "{avg3m_label}"
         """)
-        # label dinamis untuk AVG 3 bulan
-        avg3m_label = f"{month_labels[0]} → {month_labels[-1]}"
+
         # =========================
         # FINAL QUERY + GRAND TOTAL
         # =========================
