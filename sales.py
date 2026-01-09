@@ -31,14 +31,14 @@ def sales():
     EXCEL_DIR.mkdir(parents=True, exist_ok=True)
 
     # ==================================================
-    # TAB 1 — IMPORT
+    # TAB 1 — IMPORT + UPDATE PARQUET EXISTING
     # ==================================================
     with tab1:
-        st.subheader("Upload Excel / CSV → Append ke Dataset")
+        st.subheader("Upload Data → Gabungkan ke Dataset")
 
         uploaded_files = st.file_uploader(
-            "Upload file",
-            type=["xlsx", "xls", "xlsb", "csv"],
+            "Upload file (Parquet / Excel / CSV)",
+            type=["parquet", "xlsx", "xls", "xlsb", "csv"],
             accept_multiple_files=True
         )
 
@@ -47,33 +47,33 @@ def sales():
 
         if uploaded_files:
             for uploaded in uploaded_files:
-
                 st.markdown(f"### 📄 {uploaded.name}")
 
-                # -------- EXCEL --------
-                if uploaded.name.lower().endswith(("xlsx", "xls", "xlsb")):
-                    xls = pd.ExcelFile(uploaded)
+                if uploaded.name.lower().endswith("parquet"):
+                    st.session_state.files[uploaded.name] = {
+                        "type": "parquet",
+                        "file": uploaded
+                    }
 
+                elif uploaded.name.lower().endswith(("xlsx", "xls", "xlsb")):
+                    xls = pd.ExcelFile(uploaded)
                     sheet = st.selectbox(
                         "Pilih sheet",
                         xls.sheet_names,
                         key=f"sheet_{uploaded.name}"
                     )
-
                     st.session_state.files[uploaded.name] = {
                         "type": "excel",
                         "file": uploaded,
                         "sheet": sheet
                     }
 
-                # -------- CSV --------
-                else:
+                else:  # CSV
                     delimiter = st.selectbox(
                         "Delimiter",
                         [",", ";", "|", "\t"],
                         key=f"delim_{uploaded.name}"
                     )
-
                     st.session_state.files[uploaded.name] = {
                         "type": "csv",
                         "file": uploaded,
@@ -89,34 +89,25 @@ def sales():
 
             for meta in st.session_state.files.values():
 
-                # -------- READ DATA --------
-                if meta["type"] == "excel":
-                    df = pd.read_excel(
-                        meta["file"],
-                        sheet_name=meta["sheet"]
-                    )
-                else:
-                    df = pd.read_csv(
-                        meta["file"],
-                        delimiter=meta["delimiter"]
-                    )
+                # ---------- READ ----------
+                if meta["type"] == "parquet":
+                    df = pd.read_parquet(meta["file"])
+                elif meta["type"] == "excel":
+                    df = pd.read_excel(meta["file"], sheet_name=meta["sheet"])
+                else:  # CSV
+                    df = pd.read_csv(meta["file"], delimiter=meta["delimiter"])
 
-                # 🔒 SAFE MODE: semua string → anti ArrowTypeError
+                # 🔒 SAFE MODE: semua string
                 df = df.astype("string")
 
-                # ------------------- SAVE TO PARQUET -------------------
-                df["_source_file"] = meta["file"].name
-                parquet_out = PARQUET_DIR / f"part-{uuid.uuid4().hex}.parquet"
-                df.to_parquet(parquet_out, index=False)
+                # metadata
+                df["_source_file"] = getattr(meta["file"], "name", "uploaded_data")
 
-                # ------------------- SAVE COPY EXCEL/CSV -------------------
-                excel_out = EXCEL_DIR / meta["file"].name
-                if meta["type"] == "excel":
-                    df.to_excel(excel_out, index=False)
-                else:
-                    df.to_csv(excel_out, index=False)
+                # ---------- SAVE PART PARQUET ----------
+                out = PARQUET_DIR / f"part-{uuid.uuid4().hex}.parquet"
+                df.to_parquet(out, index=False)
 
-            st.success("✅ Semua file berhasil di-append (Parquet + Excel/CSV)")
+            st.success("✅ Semua file berhasil digabung ke dataset")
             st.session_state.files = {}
 
         # =========================
