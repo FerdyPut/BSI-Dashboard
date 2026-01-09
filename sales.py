@@ -5,6 +5,7 @@ import duckdb
 import uuid
 import shutil
 import tempfile
+import calendar
 
 # =========================
 # CONFIG
@@ -311,12 +312,15 @@ def sales():
         # =========================
         # BUILD PIVOT COLUMNS
         # =========================
+
         month_exprs = []
         month_labels = []
 
         # 3 bulan terakhir
         for y, m in periods:
-            label = f"{y}-{m:02d}"
+            # ganti label ke format "Mon-YYYY", misal "Okt-2025"
+            month_name = calendar.month_abbr[m]  # 'Jan', 'Feb', 'Mar', ...
+            label = f"{month_name}-{y}"
             month_labels.append(label)
 
             month_exprs.append(f"""
