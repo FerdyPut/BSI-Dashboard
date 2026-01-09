@@ -344,9 +344,8 @@ def sales():
 
         # AVG 3 BULAN TERAKHIR → tambahkan setelah AVG_12M
         month_exprs.append(f"""
-            ({' + '.join([f'"{lbl}"' for lbl in month_labels])}) / 3 AS "Average Sales Per 3 Bulan terakhir"
+            ({' + '.join([f'COALESCE("{lbl}",0)' for lbl in month_labels])}) / 3 AS "Average Sales Per 3 Bulan terakhir"
         """)
-
         # =========================
         # FINAL QUERY + GRAND TOTAL
         # =========================
