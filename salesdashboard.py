@@ -10,7 +10,7 @@ st.info("Selamat Datang di Website BSI Dashboard!")
 selected = option_menu(
     menu_title= None,
     options=["Introduction","Dashboard Sales","Dashboard Mapping LD GT"],
-    icons=["calendar", "book"],
+    icons=["calendar", "book", "archive"],
     orientation="horizontal",
     styles={
         "container": {"padding": "0!important", "background-color": "#f0f2f6"},
