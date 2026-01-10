@@ -167,8 +167,8 @@ def ldgtmap():
             # Tambahkan kolom lat/lon kalau belum ada
             # =========================
             if 'lat' not in df.columns or 'lon' not in df.columns:
-                df['lat'] = df['Cabang'].map(lambda x: cabang_lookup.get(x, None))
-                df['lon'] = df['Cabang'].map(lambda x: cabang_lookup.get(x, None))
+                df['lat'] = df['CABANG'].map(lambda x: cabang_lookup.get(x, None))
+                df['lon'] = df['CABANG'].map(lambda x: cabang_lookup.get(x, None))
                 st.session_state['df'] = df  # update session_state
 
             # =========================
