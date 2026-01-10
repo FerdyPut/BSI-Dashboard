@@ -16,7 +16,7 @@ def ldgtmap():
     # TAB 1: Upload File
     # =========================
     with tab1:
-        st.subheader("Upload File LDGT (CSV / Excel)")
+        st.subheader("Upload File")
         uploaded_file = st.file_uploader("Pilih file", type=["csv", "xlsx"])
 
         if uploaded_file is not None:
@@ -24,10 +24,12 @@ def ldgtmap():
                 df = pd.read_csv(uploaded_file)
             else:
                 df = pd.read_excel(uploaded_file)
+        
+        st.button("Proses!", key='prosesldgt')
 
-            st.success("File berhasil diupload!")
-            # Simpan di session state supaya bisa dipakai tab lain
-            st.session_state['df'] = df
+        st.success("File berhasil diupload!")
+        # Simpan di session state supaya bisa dipakai tab lain
+        st.session_state['df'] = df
 
     # =========================
     # TAB 2: View Data
