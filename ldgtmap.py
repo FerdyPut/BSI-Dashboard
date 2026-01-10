@@ -16,7 +16,49 @@ def ldgtmap():
     # TAB 1: Upload File
     # =========================
     with tab1:
-        st.subheader("Upload File")
+        st.markdown(
+                            f"""
+                            <style>
+                            .hover-box2 {{
+                                border: 1px solid #005461;
+                                border-radius: 10px;
+                                padding: 5px;
+                                text-align: center;
+                                background-color: #005461;
+                                color: white;
+                                transition: 0.3s;
+                                position: relative;
+                                margin-top: 1px;
+                                font-size: 18px;
+                                font-family: 'Poppins', sans-serif;
+                            }}
+                            .hover-box2:hover {{
+                                background-color: #005461;
+                                transform: scale(1.01);
+                            }}
+                            .download-btn {{
+                                display: none;
+                                margin-top: 10px;
+                            }}
+                            .hover-box2:hover .download-btn {{
+                                display: block;
+                            }}
+                            a.download-link {{
+                                color: white;
+                                text-decoration: none;
+                                padding: 5px 10px;
+                                background-color: #005461;
+                                border-radius: 5px;
+                                font-weight: bold;
+                            }}
+                            </style>
+
+                            <div class="hover-box2">
+                                <strong>UPLOAD FILE</strong>
+                            </div>
+                            <p></p>
+                            """, unsafe_allow_html=True
+                        )
         st.info("Harap memasukkan file yang akan di mapping dengan struktur kolomnya: Tahun | Month | Distributor | Cabang | SKU | Value | SKU | KET")
         with st.container(border=True):
             uploaded_file = st.file_uploader("Pilih file", type=["csv", "xlsx"])
