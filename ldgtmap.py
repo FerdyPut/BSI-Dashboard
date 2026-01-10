@@ -77,14 +77,14 @@ def ldgtmap():
 
     # =========================
     # TAB 2: View Data
-    # =========================
+    # =========================0
     with tab2:
         if 'df' in st.session_state:
             df = st.session_state['df']
 
-            col1, col2 = st.columns(2)
-            total_value = df['NET VALUE'].sum()
             with st.container(border=True):
+                col1, col2 = st.columns(2)
+                total_value = df['NET VALUE'].sum()
                 col1.metric("📊 Total Data", f"{len(df):,}")
                 col2.metric("💰 Total Value", f"{total_value:,.2f}" if total_value else "—")
 
