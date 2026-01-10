@@ -137,6 +137,8 @@ def ldgtmap():
     # =========================
     # TAB 3: Analytics - Mapping
     # =========================
+
+
     with tab3:
         if 'df' in st.session_state:
             df = st.session_state['df']
@@ -185,6 +187,7 @@ def ldgtmap():
                     """, unsafe_allow_html=True
                 )
 
+
             # Lookup table Cabang → (lat, lon)
             cabang_lookup = {
                 "Banda Aceh": (5.5483, 95.3238),
@@ -218,7 +221,7 @@ def ldgtmap():
                     map_data = map_data[map_data['Kategori'].isin(selected_kategori)]
 
                 # =========================
-                # Agregasi jumlah per Cabang & KET
+                # AGREGASI PER CABANG & KET → titik peta minim, cepat untuk 120k row
                 # =========================
                 map_data_agg = map_data.groupby(['CABANG','lat','lon','KET'], as_index=False).agg(
                     jumlah=('CABANG','count'),
@@ -228,10 +231,9 @@ def ldgtmap():
                 # =========================
                 # Custom warna KET
                 # =========================
-                # Ganti sesuai isi KET di data
+                # Contoh default 2 warna: merah & coklat tua
                 color_map = {}
                 ket_unique = map_data_agg['KET'].unique()
-                # contoh default 2 warna: merah & coklat tua
                 colors = ["red","saddlebrown"]
                 for i, k in enumerate(ket_unique):
                     color_map[k] = colors[i % len(colors)]
@@ -262,5 +264,3 @@ def ldgtmap():
                 st.warning("Tidak ada data lat/lon valid.")
         else:
             st.info("Silakan upload file dulu di tab Upload Data.")
-
-
