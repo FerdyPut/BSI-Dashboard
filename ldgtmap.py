@@ -185,7 +185,7 @@ def ldgtmap():
                     data=map_data,
                     get_position='[lon, lat]',
                     get_color='[255, 140, 0, 160]',
-                    get_radius='NET VALUE * 1000',  # skala bisa disesuaikan
+                    get_radius='NET VALUE * 10000',  # skala bisa disesuaikan
                     pickable=True,
                     auto_highlight=True
                 )
