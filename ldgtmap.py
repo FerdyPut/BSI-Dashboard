@@ -131,6 +131,15 @@ def ldgtmap():
                 )
             st.dataframe(df)
 
+            # Tombol Download CSV
+            csv_data = df.to_csv(index=False).encode('utf-8')
+            st.download_button(
+                label="📥 Download Data as CSV",
+                data=csv_data,
+                file_name='Data Sales LDGT Resize.csv',
+                mime='text/csv'
+            )
+
         else:
             st.info("Silakan upload file dulu di tab Upload Data.")
 
