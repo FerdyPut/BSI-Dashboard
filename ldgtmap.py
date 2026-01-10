@@ -176,26 +176,26 @@ def ldgtmap():
                     map_data = map_data[map_data['Kategori'].isin(selected_kategori)]
 
                 # =========================
-                # Agregasi jumlah per Cabang
+                # Agregasi jumlah per Cabang & KET
                 # =========================
-                map_data_agg = map_data.groupby(['CABANG', 'lat', 'lon'], as_index=False).agg(
+                map_data_agg = map_data.groupby(['CABANG', 'lat', 'lon', 'KET'], as_index=False).agg(
                     jumlah=('CABANG', 'count'),           # jumlah transaksi / rows
                     total_value=('NET VALUE', 'sum')      # total value
                 )
 
                 # =========================
-                # Plotly Bubble Map
+                # Plotly Bubble Map dengan warna berdasarkan KET
                 # =========================
                 fig = px.scatter_mapbox(
                     map_data_agg,
                     lat="lat",
                     lon="lon",
                     size="jumlah",                        # bubble = jumlah transaksi
+                    color="KET",                           # warna berdasarkan KET
                     hover_name="CABANG",
-                    hover_data={"jumlah": True, "total_value": True},
-                    color=None,                            # bisa diganti "Kategori" kalau ada
-                    zoom=5,
-                    height=600
+                    hover_data={"jumlah": True, "total_value": True, "KET": True},
+                    zoom=8,
+                    height=800
                 )
 
                 fig.update_layout(mapbox_style="open-street-map")
@@ -207,4 +207,5 @@ def ldgtmap():
                 st.warning("Tidak ada data lat/lon valid.")
         else:
             st.info("Silakan upload file dulu di tab Upload Data.")
+
 
