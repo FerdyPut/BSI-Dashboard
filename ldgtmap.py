@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-
+import pydeck as pdk
 
 
 
@@ -143,11 +143,9 @@ def ldgtmap():
         if 'df' in st.session_state:
             df = st.session_state['df']
 
-            st.subheader("Mapping LDGT")
+            st.subheader("Mapping LDGT (Bubble Map)")
 
-            # =========================
             # Lookup table Cabang → (lat, lon)
-            # =========================
             cabang_lookup = {
                 "Banda Aceh": (5.5483, 95.3238),
                 "Bengkulu": (-3.8000, 102.2650),
@@ -163,29 +161,51 @@ def ldgtmap():
                 "Pematang Siantar": (2.9639, 99.0621)
             }
 
-            # =========================
-            # Tambahkan kolom lat/lon jika belum ada
-            # =========================
+            # Tambahkan lat/lon
             if 'lat' not in df.columns or 'lon' not in df.columns:
                 df['lat'] = df['CABANG'].map(lambda x: cabang_lookup.get(x, (None, None))[0])
                 df['lon'] = df['CABANG'].map(lambda x: cabang_lookup.get(x, (None, None))[1])
-                st.session_state['df'] = df  # update session_state
+                st.session_state['df'] = df
 
-            # =========================
-            # Filter baris yang punya lat & lon valid
-            # =========================
+            # Filter valid lat/lon
             map_data = df.dropna(subset=['lat', 'lon'])
 
             if not map_data.empty:
-                # Pilihan kategori (opsional)
-                if 'Kategori' in df.columns:
+                # Filter kategori (opsional)
+                if 'Kategori' in map_data.columns:
                     kategori_list = map_data['Kategori'].unique().tolist()
                     selected_kategori = st.multiselect("Pilih Kategori", kategori_list, default=kategori_list)
                     map_data = map_data[map_data['Kategori'].isin(selected_kategori)]
 
-                # Tampilkan peta
-                st.map(map_data[['lat', 'lon']])
+                # =========================
+                # PyDeck Bubble Map
+                # =========================
+                layer = pdk.Layer(
+                    "ScatterplotLayer",
+                    data=map_data,
+                    get_position='[lon, lat]',
+                    get_color='[255, 140, 0, 160]',  # or bisa beda per kategori
+                    get_radius='Value * 100',  # radius proporsional dengan Value
+                    pickable=True,
+                    auto_highlight=True
+                )
+
+                # Tooltip
+                tooltip = {"html": "<b>Cabang:</b> {Cabang} <br/> <b>Value:</b> {Value}",
+                        "style": {"color": "white"}}
+
+                # View
+                view_state = pdk.ViewState(
+                    latitude=map_data['lat'].mean(),
+                    longitude=map_data['lon'].mean(),
+                    zoom=5,
+                    pitch=0
+                )
+
+                r = pdk.Deck(layers=[layer], initial_view_state=view_state, tooltip=tooltip)
+                st.pydeck_chart(r)
+
             else:
-                st.warning("Tidak ada data lat/lon valid. Pastikan kolom Cabang sesuai lookup.")
+                st.warning("Tidak ada data lat/lon valid.")
         else:
             st.info("Silakan upload file dulu di tab Upload Data.")
