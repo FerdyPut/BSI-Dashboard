@@ -161,14 +161,16 @@ def ldgtmap():
                 "Pematang Siantar": (2.9639, 99.0621)
             }
 
-            # Tambahkan lat/lon
+            # Tambahkan lat/lon jika belum ada
             if 'lat' not in df.columns or 'lon' not in df.columns:
                 df['lat'] = df['CABANG'].map(lambda x: cabang_lookup.get(x, (None, None))[0])
                 df['lon'] = df['CABANG'].map(lambda x: cabang_lookup.get(x, (None, None))[1])
                 st.session_state['df'] = df
 
-            # Filter valid lat/lon
-            map_data = df.dropna(subset=['lat', 'lon'])
+            # Pastikan lat/lon dan NET VALUE valid
+            map_data = df.dropna(subset=['lat','lon','NET VALUE'])
+            map_data['NET VALUE'] = pd.to_numeric(map_data['NET VALUE'], errors='coerce')
+            map_data = map_data.dropna(subset=['NET VALUE'])
 
             if not map_data.empty:
                 # Filter kategori (opsional)
@@ -177,24 +179,20 @@ def ldgtmap():
                     selected_kategori = st.multiselect("Pilih Kategori", kategori_list, default=kategori_list)
                     map_data = map_data[map_data['Kategori'].isin(selected_kategori)]
 
-                # =========================
                 # PyDeck Bubble Map
-                # =========================
                 layer = pdk.Layer(
                     "ScatterplotLayer",
                     data=map_data,
                     get_position='[lon, lat]',
-                    get_color='[255, 140, 0, 160]',  # or bisa beda per kategori
-                    get_radius='NET VALUE * 100',  # radius proporsional dengan Value
+                    get_color='[255, 140, 0, 160]',
+                    get_radius='NET VALUE * 1000',  # skala bisa disesuaikan
                     pickable=True,
                     auto_highlight=True
                 )
 
-                # Tooltip
-                tooltip = {"html": "<b>Cabang:</b> {Cabang} <br/> <b>NET VALUE:</b> {NET VALUE}",
+                tooltip = {"html": "<b>Cabang:</b> {CABANG} <br/> <b>NET VALUE:</b> {NET VALUE}",
                         "style": {"color": "white"}}
 
-                # View
                 view_state = pdk.ViewState(
                     latitude=map_data['lat'].mean(),
                     longitude=map_data['lon'].mean(),
@@ -204,8 +202,7 @@ def ldgtmap():
 
                 r = pdk.Deck(layers=[layer], initial_view_state=view_state, tooltip=tooltip)
                 st.pydeck_chart(r)
-
             else:
-                st.warning("Tidak ada data lat/lon valid.")
+                st.warning("Tidak ada data lat/lon atau NET VALUE valid.")
         else:
             st.info("Silakan upload file dulu di tab Upload Data.")
