@@ -250,7 +250,7 @@ def ldgtmap():
                 # =========================
                 # Plotly Bubble Map
                 # =========================
-                zoom_level = st.slider("Zoom Peta", min_value=1, max_value=15, value=8)
+                zoom_level = st.slider("Zoom Peta", min_value=1, max_value=15, value=5)
                 fig = px.scatter_mapbox(
                     map_data_agg,
                     lat="lat",
