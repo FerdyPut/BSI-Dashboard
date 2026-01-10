@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import pydeck as pdk
-
+import plotly.express as px
 
 
 def ldgtmap():
@@ -139,11 +139,12 @@ def ldgtmap():
     # =========================
     # TAB 3: Analytics - Mapping
     # =========================
+
     with tab3:
         if 'df' in st.session_state:
             df = st.session_state['df']
 
-            st.subheader("Mapping LDGT (Bubble Map)")
+            st.subheader("Mapping LDGT (Bubble Map - Plotly)")
 
             # Lookup table Cabang → (lat, lon)
             cabang_lookup = {
@@ -167,8 +168,8 @@ def ldgtmap():
                 df['lon'] = df['CABANG'].map(lambda x: cabang_lookup.get(x, (None, None))[1])
                 st.session_state['df'] = df
 
-            # Pastikan lat/lon dan NET VALUE valid
-            map_data = df.dropna(subset=['lat','lon','NET VALUE'])
+            # Filter valid lat/lon & NET VALUE numeric
+            map_data = df.dropna(subset=['lat','lon','NET VALUE']).copy()
             map_data['NET VALUE'] = pd.to_numeric(map_data['NET VALUE'], errors='coerce')
             map_data = map_data.dropna(subset=['NET VALUE'])
 
@@ -179,29 +180,26 @@ def ldgtmap():
                     selected_kategori = st.multiselect("Pilih Kategori", kategori_list, default=kategori_list)
                     map_data = map_data[map_data['Kategori'].isin(selected_kategori)]
 
-                # PyDeck Bubble Map
-                layer = pdk.Layer(
-                    "ScatterplotLayer",
-                    data=map_data,
-                    get_position='[lon, lat]',
-                    get_color='[255, 140, 0, 160]',
-                    get_radius='NET VALUE * 10000',  # skala bisa disesuaikan
-                    pickable=True,
-                    auto_highlight=True
-                )
-
-                tooltip = {"html": "<b>Cabang:</b> {CABANG} <br/> <b>NET VALUE:</b> {NET VALUE}",
-                        "style": {"color": "white"}}
-
-                view_state = pdk.ViewState(
-                    latitude=map_data['lat'].mean(),
-                    longitude=map_data['lon'].mean(),
+                # =========================
+                # Plotly Bubble Map
+                # =========================
+                fig = px.scatter_mapbox(
+                    map_data,
+                    lat="lat",
+                    lon="lon",
+                    size="NET VALUE",             # ukuran bubble
+                    hover_name="CABANG",
+                    hover_data={"NET VALUE": True},
+                    color="Kategori" if "Kategori" in map_data.columns else None,
                     zoom=5,
-                    pitch=0
+                    height=600
                 )
 
-                r = pdk.Deck(layers=[layer], initial_view_state=view_state, tooltip=tooltip)
-                st.pydeck_chart(r)
+                fig.update_layout(mapbox_style="open-street-map")
+                fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
+
+                st.plotly_chart(fig, use_container_width=True)
+
             else:
                 st.warning("Tidak ada data lat/lon atau NET VALUE valid.")
         else:
