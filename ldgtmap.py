@@ -69,11 +69,9 @@ def ldgtmap():
                 else:
                     df = pd.read_excel(uploaded_file)
             
-            st.button("Proses!", key='prosesldgt')
-
-            st.success("File berhasil diupload!")
-            # Simpan di session state supaya bisa dipakai tab lain
-            st.session_state['df'] = df
+                if st.button("Proses!", key='prosesldgt'):
+                    st.session_state['df'] = df
+                    st.success("File berhasil diupload!")
 
     # =========================
     # TAB 2: View Data
@@ -139,7 +137,6 @@ def ldgtmap():
     # =========================
     # TAB 3: Analytics - Mapping
     # =========================
-
     with tab3:
         if 'df' in st.session_state:
             df = st.session_state['df']
