@@ -44,8 +44,8 @@ if selected == "Introduction":
         </style>
                 
         <div class="hover-zoom-box">
-            - Website BSI Tools ini maintain by BSI Team.<br>
-            - BSI Tools digunakan untuk mempermudah dalam melakukan analisis, seperti POB, RNL, AO, Renpro, dan lainnya.<br>
+            - Website BSI Dashboard ini maintain by BSI Team.<br>
+            - BSI Dashboard digunakan untuk summary secara umum dari Sales STT.<br>
             - Diharapkan digunakan dengan baik.<br>
             - Penanggung Jawab : <b> Nuril F. Amanah (Koordinator Business Support Information) </b>
         </div>
