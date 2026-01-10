@@ -17,19 +17,21 @@ def ldgtmap():
     # =========================
     with tab1:
         st.subheader("Upload File")
-        uploaded_file = st.file_uploader("Pilih file", type=["csv", "xlsx"])
+        st.info("Harap memasukkan file yang akan di mapping dengan struktur kolomnya: Tahun | Month | Distributor | Cabang | SKU | Value | SKU | KET")
+        with st.container(border=True):
+            uploaded_file = st.file_uploader("Pilih file", type=["csv", "xlsx"])
 
-        if uploaded_file is not None:
-            if uploaded_file.name.endswith(".csv"):
-                df = pd.read_csv(uploaded_file)
-            else:
-                df = pd.read_excel(uploaded_file)
-        
-        st.button("Proses!", key='prosesldgt')
+            if uploaded_file is not None:
+                if uploaded_file.name.endswith(".csv"):
+                    df = pd.read_csv(uploaded_file)
+                else:
+                    df = pd.read_excel(uploaded_file)
+            
+            st.button("Proses!", key='prosesldgt')
 
-        st.success("File berhasil diupload!")
-        # Simpan di session state supaya bisa dipakai tab lain
-        st.session_state['df'] = df
+            st.success("File berhasil diupload!")
+            # Simpan di session state supaya bisa dipakai tab lain
+            st.session_state['df'] = df
 
     # =========================
     # TAB 2: View Data
@@ -37,17 +39,15 @@ def ldgtmap():
     with tab2:
         if 'df' in st.session_state:
             df = st.session_state['df']
+
+            col1, col2 = st.columns(2)
+            total_value = df['NET VALUE'].sum()
+            col1.metric("📊 Total Data", f"{len(df):,}")
+            col2.metric("💰 Total Value", f"{total_value:,.2f}" if total_value else "—")
+
             st.subheader("Dataframe LDGT")
             st.dataframe(df)
 
-            st.markdown(f"**Total Baris:** {len(df)}")
-
-            # Asumsi ada kolom 'Value' untuk total value
-            if 'Value' in df.columns:
-                total_value = df['Value'].sum()
-                st.markdown(f"**Total Value Keseluruhan:** {total_value}")
-            else:
-                st.warning("Kolom 'Value' tidak ditemukan.")
         else:
             st.info("Silakan upload file dulu di tab Upload Data.")
 
