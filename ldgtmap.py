@@ -185,13 +185,13 @@ def ldgtmap():
                     data=map_data,
                     get_position='[lon, lat]',
                     get_color='[255, 140, 0, 160]',  # or bisa beda per kategori
-                    get_radius='Value * 100',  # radius proporsional dengan Value
+                    get_radius='NET VALUE * 100',  # radius proporsional dengan Value
                     pickable=True,
                     auto_highlight=True
                 )
 
                 # Tooltip
-                tooltip = {"html": "<b>Cabang:</b> {Cabang} <br/> <b>Value:</b> {Value}",
+                tooltip = {"html": "<b>Cabang:</b> {Cabang} <br/> <b>NET VALUE:</b> {NET VALUE}",
                         "style": {"color": "white"}}
 
                 # View
