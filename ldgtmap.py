@@ -164,27 +164,28 @@ def ldgtmap():
             }
 
             # =========================
-            # Tambahkan kolom lat/lon kalau belum ada
+            # Tambahkan kolom lat/lon jika belum ada
             # =========================
             if 'lat' not in df.columns or 'lon' not in df.columns:
-                df['lat'] = df['CABANG'].map(lambda x: cabang_lookup.get(x, None))
-                df['lon'] = df['CABANG'].map(lambda x: cabang_lookup.get(x, None))
+                df['lat'] = df['CABANG'].map(lambda x: cabang_lookup.get(x, (None, None))[0])
+                df['lon'] = df['CABANG'].map(lambda x: cabang_lookup.get(x, (None, None))[1])
                 st.session_state['df'] = df  # update session_state
 
             # =========================
-            # Pastikan ada lat/lon untuk map
+            # Filter baris yang punya lat & lon valid
             # =========================
-            if df['lat'].notna().any() and df['lon'].notna().any():
+            map_data = df.dropna(subset=['lat', 'lon'])
+
+            if not map_data.empty:
                 # Pilihan kategori (opsional)
                 if 'Kategori' in df.columns:
-                    kategori_list = df['Kategori'].unique().tolist()
+                    kategori_list = map_data['Kategori'].unique().tolist()
                     selected_kategori = st.multiselect("Pilih Kategori", kategori_list, default=kategori_list)
-                    map_data = df[df['Kategori'].isin(selected_kategori)]
-                else:
-                    map_data = df
+                    map_data = map_data[map_data['Kategori'].isin(selected_kategori)]
 
+                # Tampilkan peta
                 st.map(map_data[['lat', 'lon']])
             else:
-                st.warning("Tidak ada data lat/lon valid. Pastikan Cabang sesuai lookup.")
+                st.warning("Tidak ada data lat/lon valid. Pastikan kolom Cabang sesuai lookup.")
         else:
             st.info("Silakan upload file dulu di tab Upload Data.")
