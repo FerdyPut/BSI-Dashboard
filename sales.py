@@ -375,6 +375,7 @@ def sales():
             )
             bulan_akhir = int(bulan_akhir)
 
+        st.badge(f"Closingan Date dipilih: Bulan ke-{bulan_akhir} Tahun {tahun_akhir}", color='blue')
 
         # =========================
         # Container Input Historical Week
@@ -442,7 +443,7 @@ def sales():
             bulan_hist = int(bulan_hist)
 
         # Sekarang tahun_hist dan bulan_hist siap dipakai di query
-        st.badge(f"Historical Week dipilih: {bulan_hist}/{tahun_hist}", color='blue')
+        st.badge(f"Historical Week dipilih: Bulan ke-{bulan_hist} Tahun {tahun_hist}", color='blue')
         
         # =========================
         # Generate ISO week calendar otomatis
@@ -508,13 +509,13 @@ def sales():
             month_labels.append(label)
 
             month_exprs.append(f"""
-                SUM(
+                COALESCE(SUM(
                     CASE
                         WHEN EXTRACT(YEAR FROM DT) = {y}
                         AND EXTRACT(MONTH FROM DT) = {m}
                         THEN Value
                     END
-                ) AS "{label}"
+                ),0) AS "{label}"
             """)
 
         # AVG 12 BULAN (rolling)
@@ -533,17 +534,19 @@ def sales():
         # Label kolom AVG 12M
         start_label = f"{calendar.month_abbr[start_month]}-{start_year}"
         end_label = f"{calendar.month_abbr[end_month]}-{end_year}"
-        avg12m_label = f" Average Sales Per ({start_label} until {end_label})"
+        avg12m_label = f"Average Sales Per ({start_label} until {end_label})"
 
-        # Kolom AVG 12M
+        # Kolom AVG 12M, jika tidak ada data → 0
         month_exprs.append(f"""
-            SUM(
-                CASE
-                    WHEN (EXTRACT(YEAR FROM DT) * 12 + EXTRACT(MONTH FROM DT))
-                        BETWEEN {start_index} AND {end_index}
-                    THEN Value
-                END
-            ) / 12 AS "{avg12m_label}"
+            COALESCE(
+                SUM(
+                    CASE
+                        WHEN (EXTRACT(YEAR FROM DT) * 12 + EXTRACT(MONTH FROM DT))
+                            BETWEEN {start_index} AND {end_index}
+                        THEN Value
+                    END
+                ) / 12,
+            0) AS "{avg12m_label}"
         """)
 
         # AVG 3 BULAN TERAKHIR → tambahkan setelah AVG_12M
@@ -740,7 +743,6 @@ def sales():
         # =========================
         # SHOW TABLE
         # =========================
-        st.caption(f"Periode Pivot: {month_labels[0]} → {month_labels[-1]} (Closed Month)")
         st.markdown(
                     f"""
                     <style>
@@ -784,11 +786,37 @@ def sales():
                     <p></p>
                     """, unsafe_allow_html=True
                 )
+        st.badge(f"Periode Pivot: {month_labels[0]} → {month_labels[-1]} (Closed Month)", color='blue')
         st.dataframe(
             df_display.style.apply(
                 lambda r: ["font-weight: bold"]*len(r) if r["SKU"]=="GRAND TOTAL" else [""]*len(r),
                 axis=1
             ),
             use_container_width=True
+        )
+
+        # =========================
+        # DOWNLOAD BUTTON (angka tetap numeric)
+        # =========================
+        df_download = df.copy()
+
+        # =========================
+        # Siapkan df_download
+        # =========================
+        df_download = df.copy()
+
+        # Loop semua kolom kecuali SKU
+        for c in df_download.columns:
+            if c != "SKU":
+                # Convert ke numeric, coerce jika ada error
+                df_download[c] = pd.to_numeric(df_download[c], errors='coerce')
+                # Bulatkan 2 desimal (atau gunakan .0 untuk bulat)
+                df_download[c] = df_download[c].round(2)  # pakai 0 untuk integer: .round(0)
+                
+        st.download_button(
+            label="📥 Download Historical Summary",
+            data=df_download.to_csv(index=False),
+            file_name=f"Historical Summary Sales Tahun {tahun_hist}.csv",
+            mime="text/csv"
         )
 
