@@ -6,7 +6,8 @@ import uuid
 import shutil
 import tempfile
 import calendar
-
+from datetime import date, timedelta
+import datetime
 # =========================
 # CONFIG
 # =========================
@@ -221,6 +222,49 @@ def sales():
     # TAB 3 — ANALYTICS
     # ==================================================
     with tab3:
+        st.markdown(
+                    f"""
+                    <style>
+                    .hover-box2 {{
+                        border: 1px solid #005461;
+                        border-radius: 10px;
+                        padding: 5px;
+                        text-align: center;
+                        background-color: #005461;
+                        color: white;
+                        transition: 0.3s;
+                        position: relative;
+                        margin-top: 1px;
+                        font-size: 18px;
+                        font-family: 'Poppins', sans-serif;
+                    }}
+                    .hover-box2:hover {{
+                        background-color: #005461;
+                        transform: scale(1.01);
+                    }}
+                    .download-btn {{
+                        display: none;
+                        margin-top: 10px;
+                    }}
+                    .hover-box2:hover .download-btn {{
+                        display: block;
+                    }}
+                    a.download-link {{
+                        color: white;
+                        text-decoration: none;
+                        padding: 5px 10px;
+                        background-color: #005461;
+                        border-radius: 5px;
+                        font-weight: bold;
+                    }}
+                    </style>
+
+                    <div class="hover-box2">
+                        <strong>TYPES OF FILTER</strong>
+                    </div>
+                    <p></p>
+                    """, unsafe_allow_html=True
+                )
         st.subheader("📊 Analytics Advanced")
 
         con = duckdb.connect(":memory:")
@@ -243,46 +287,183 @@ def sales():
         # =========================
         # FILTERS
         # =========================
-        col1, col2, col3 = st.columns(3)
+        with st.container(border=True):
+            col1, col2, col3 = st.columns(3)
 
-        with col1:
-            filters = {
-                "REGION": st.multiselect("REGION", get_distinct("REGION")),
-                "DISTRIBUTOR": st.multiselect("DISTRIBUTOR", get_distinct("DISTRIBUTOR")),
-            }
+            with col1:
+                filters = {
+                    "REGION": st.multiselect("REGION", get_distinct("REGION")),
+                    "DISTRIBUTOR": st.multiselect("DISTRIBUTOR", get_distinct("DISTRIBUTOR")),
+                }
 
-        with col2:
-            filters.update({
-                "AREA": st.multiselect("AREA", get_distinct("AREA")),
-                "SALES OFFICE": st.multiselect("SALES OFFICE", get_distinct("SALES OFFICE")),
-            })
+            with col2:
+                filters.update({
+                    "AREA": st.multiselect("AREA", get_distinct("AREA")),
+                    "SALES OFFICE": st.multiselect("SALES OFFICE", get_distinct("SALES OFFICE")),
+                })
 
-        with col3:
-            filters.update({
-                "GROUP": st.multiselect("GROUP", get_distinct("GROUP")),
-                "TIPE": st.multiselect("TIPE", get_distinct("TIPE")),
-            })
+            with col3:
+                filters.update({
+                    "GROUP": st.multiselect("GROUP", get_distinct("GROUP")),
+                    "TIPE": st.multiselect("TIPE", get_distinct("TIPE")),
+                })
 
         # =========================
         # TAHUN & BULAN CLOSED
         # =========================
+        parquet_path = str(PARQUET_DIR / "*.parquet")
         tahun_options = sorted(
             con.execute(f"SELECT DISTINCT CAST(TAHUN AS INTEGER) AS TAHUN FROM '{PARQUET_DIR}/*.parquet'").df()["TAHUN"]
         )
 
-        tahun_akhir = st.selectbox(
-            "Tahun Terakhir (Closed Month)",
-            tahun_options,
-            index=len(tahun_options)-1
-        )
-        tahun_akhir = int(tahun_akhir)
+        st.markdown(
+                    f"""
+                    <style>
+                    .hover-box {{
+                        border: 1px solid #215E61;
+                        border-radius: 10px;
+                        padding: 5px;
+                        text-align: center;
+                        background-color: #215E61;
+                        color: white;
+                        transition: 0.3s;
+                        position: relative;
+                        margin-top: 1px;
+                        font-size: 18px;
+                        font-family: 'Poppins', sans-serif;
+                    }}
+                    .hover-box:hover {{
+                        background-color: #215E61;
+                        transform: scale(1.01);
+                    }}
+                    .download-btn {{
+                        display: none;
+                        margin-top: 10px;
+                    }}
+                    .hover-box:hover .download-btn {{
+                        display: block;
+                    }}
+                    a.download-link {{
+                        color: white;
+                        text-decoration: none;
+                        padding: 5px 10px;
+                        background-color: #215E61;
+                        border-radius: 5px;
+                        font-weight: bold;
+                    }}
+                    </style>
 
-        bulan_akhir = st.selectbox(
-            "Bulan Terakhir (Closed Month)",
-            list(range(1,13)),
-            index=11
-        )
-        bulan_akhir = int(bulan_akhir)
+                    <div class="hover-box">
+                        <strong>CLOSING DATE</strong>
+                    </div>
+                    <p></p>
+                    """, unsafe_allow_html=True
+                )
+
+        with st.container(border=True):
+            tahun_akhir = st.selectbox(
+                "Tahun Terakhir (Closed Month)",
+                tahun_options,
+                index=len(tahun_options)-1
+            )
+            tahun_akhir = int(tahun_akhir)
+
+            bulan_akhir = st.selectbox(
+                "Bulan Terakhir (Closed Month)",
+                list(range(1,13)),
+                index=11
+            )
+            bulan_akhir = int(bulan_akhir)
+
+
+        # =========================
+        # Container Input Historical Week
+        # =========================
+        st.markdown(
+                    f"""
+                    <style>
+                    .hover-box1 {{
+                        border: 1px solid #233D4D;
+                        border-radius: 10px;
+                        padding: 5px;
+                        text-align: center;
+                        background-color: #233D4D;
+                        color: white;
+                        transition: 0.3s;
+                        position: relative;
+                        margin-top: 1px;
+                        font-size: 18px;
+                        font-family: 'Poppins', sans-serif;
+                    }}
+                    .hover-box1:hover {{
+                        background-color: #233D4D;
+                        transform: scale(1.01);
+                    }}
+                    .download-btn {{
+                        display: none;
+                        margin-top: 10px;
+                    }}
+                    .hover-box1:hover .download-btn {{
+                        display: block;
+                    }}
+                    a.download-link {{
+                        color: white;
+                        text-decoration: none;
+                        padding: 5px 10px;
+                        background-color: #233D4D;
+                        border-radius: 5px;
+                        font-weight: bold;
+                    }}
+                    </style>
+
+                    <div class="hover-box1">
+                        <strong>HISTORICAL WEEK UPDATE</strong>
+                    </div>
+                    <p></p>
+                    """, unsafe_allow_html=True
+                )
+        with st.container(border=True):
+            
+            col1, col2 = st.columns(2)  # buat 2 kolom: Tahun | Bulan
+            with col1:
+                tahun_hist = st.selectbox(
+                    "Pilih Tahun",
+                    options=list(range(2024, 2030)),
+                    index=2  # default 2026
+                )
+            with col2:
+                bulan_hist = st.selectbox(
+                    "Pilih Bulan",
+                    options=list(range(1, 13))
+                )
+            
+            # pastikan tipe integer
+            tahun_hist = int(tahun_hist)
+            bulan_hist = int(bulan_hist)
+
+        # Sekarang tahun_hist dan bulan_hist siap dipakai di query
+        st.badge(f"Historical Week dipilih: {bulan_hist}/{tahun_hist}", color='blue')
+        
+        # =========================
+        # Generate ISO week calendar otomatis
+        # =========================
+        def generate_iso_calendar(year):
+            first_monday = date(year-1, 12, 29)
+            iso_weeks = []
+            week_num = 1
+            d = first_monday
+            while d.year <= year or (d.year == year+1 and week_num <= 53):
+                iso_weeks.append({
+                    "ISO_WEEK": week_num,
+                    "MONDAY": d,
+                    "SUNDAY": d + timedelta(days=6),
+                    "MONTH": d.month
+                })
+                d += timedelta(days=7)
+                week_num += 1
+            return pd.DataFrame(iso_weeks)
+
+        df_iso = generate_iso_calendar(tahun_hist)
 
         # =========================
         # HITUNG 3 BULAN TERAKHIR (exclude bulan closed)
@@ -329,8 +510,9 @@ def sales():
             month_exprs.append(f"""
                 SUM(
                     CASE
-                        WHEN CAST(TAHUN AS INTEGER) = {y} AND CAST(MONTH AS INTEGER) = {m}
-                        THEN TRY_CAST(Value AS DOUBLE)
+                        WHEN EXTRACT(YEAR FROM DT) = {y}
+                        AND EXTRACT(MONTH FROM DT) = {m}
+                        THEN Value
                     END
                 ) AS "{label}"
             """)
@@ -357,9 +539,9 @@ def sales():
         month_exprs.append(f"""
             SUM(
                 CASE
-                    WHEN (CAST(TAHUN AS INTEGER) * 12 + CAST(MONTH AS INTEGER))
+                    WHEN (EXTRACT(YEAR FROM DT) * 12 + EXTRACT(MONTH FROM DT))
                         BETWEEN {start_index} AND {end_index}
-                    THEN TRY_CAST(Value AS DOUBLE)
+                    THEN Value
                 END
             ) / 12 AS "{avg12m_label}"
         """)
@@ -370,57 +552,169 @@ def sales():
             ({' + '.join([f'COALESCE("{lbl}",0)' for lbl in month_labels])}) / 3 AS "{avg3m_label}"
         """)
 
-        # =========================
-        # HISTORICAL SALES PER WEEK (DATA TERBARU)
-        # =========================
-        # Ambil max bulan dan tahun (bulan terakhir)
-        max_m_y = con.execute(f"SELECT MAX(CAST(MONTH AS INTEGER)) AS max_month, MAX(CAST(TAHUN AS INTEGER)) AS max_year FROM '{PARQUET_DIR}/*.parquet'").fetchone()
-        max_bulan = max_m_y[0]
-        max_tahun = max_m_y[1]
+        # Fungsi buat generate semua Senin 2025-2026 dengan ISO week, Month ISO, dan WEEK_IN_MONTH
+        def generate_iso_week_table_parquet(start_year=2025, end_year=2026):
+            rows = []
+            start_date = datetime.date(start_year-1, 12, 29)  # Senin terakhir tahun sebelumnya
+            end_date = datetime.date(end_year, 12, 31)
+            
+            current = start_date
+            while current <= end_date:
+                if current.weekday() == 0:  # Senin
+                    iso_year, iso_week, iso_weekday = current.isocalendar()
+                    # Month ISO = bulan dari Kamis di minggu ISO
+                    month_iso = (current + datetime.timedelta(days=3)).month
+                    rows.append({
+                        "DT": current,
+                        "ISO_Week": iso_week,
+                        "Tahun_ISO": iso_year,
+                        "Month_ISO": month_iso,
+                        "WEEK_IN_MONTH": 0
+                    })
+                current += datetime.timedelta(days=1)
+            
+            # Hitung WEEK_IN_MONTH per Month ISO
+            df = pd.DataFrame(rows)
+            df = df.sort_values(['Tahun_ISO','Month_ISO','DT']).reset_index(drop=True)
+            df['WEEK_IN_MONTH'] = df.groupby(['Tahun_ISO','Month_ISO']).cumcount() + 1
+            return df
 
-        for w in range(1,6):
-            week_label = f"W{w} {calendar.month_abbr[max_bulan]}-{max_tahun}"
-            month_exprs.append(f"""
-                SUM(
-                    COALESCE(
-                        CASE
-                            WHEN CAST(TRIM(TAHUN) AS INTEGER) = {max_tahun}
-                            AND CAST(TRIM(MONTH) AS INTEGER) = {max_bulan}
-                            AND CAST(TRIM(WEEK) AS INTEGER) = {w}
-                            THEN TRY_CAST(Value AS DOUBLE)
-                        END, 0)
-                ) AS "{week_label}"
-            """)
+        # Generate dataframe
+        df_iso_week = generate_iso_week_table_parquet(2025, 2026)
+
+        # Simpan ke Parquet
+        df_iso_week.to_parquet("iso_week_2025_2026.parquet", index=False)
+
 
         # =========================
         # FINAL QUERY + GRAND TOTAL
         # =========================
-        #nama kolom AVG
-        avg12m_col = avg12m_label  # "Jan-2025 → Dec-2025"
-        avg3m_col = avg3m_label
         sql = f"""
         WITH base AS (
             SELECT
                 SKU,
-                {','.join(month_exprs)}
-            FROM '{PARQUET_DIR}/*.parquet'
+                TRY_CAST(Value AS DOUBLE) AS Value,
+                CAST(WEEK AS INTEGER)  AS ISO_WEEK,
+                CAST(TAHUN AS INTEGER) AS TAHUN,
+                DATE '1899-12-30' + CAST(TANGGAL AS INTEGER) AS DT
+            FROM "{parquet_path}"
             {where_sql}
+        ),
+
+        -- =========================
+        -- LIST SKU
+        -- =========================
+        sku_list AS (
+            SELECT DISTINCT SKU FROM base
+        ),
+
+        -- =========================
+        -- AGGREGATE BULANAN
+        -- =========================
+        monthly_agg AS (
+            SELECT
+                SKU,
+                {','.join(month_exprs)},
+                AVG(
+                    CASE
+                        WHEN (TAHUN * 12 + EXTRACT(MONTH FROM DT))
+                        BETWEEN ({tahun_akhir} * 12 + {bulan_akhir} - 11)
+                            AND ({tahun_akhir} * 12 + {bulan_akhir})
+                        THEN Value
+                    END
+                ) AS "{avg12m_label}",
+                AVG(
+                    CASE
+                        WHEN (TAHUN * 12 + EXTRACT(MONTH FROM DT))
+                        BETWEEN ({tahun_akhir} * 12 + {bulan_akhir} - 2)
+                            AND ({tahun_akhir} * 12 + {bulan_akhir})
+                        THEN Value
+                    END
+                ) AS "{avg3m_label}"
+            FROM base
             GROUP BY SKU
         ),
+
+        -- =========================
+        -- BACA ISO WEEK TABLE DARI EXCEL
+        -- =========================
+        month_week_map AS (
+            SELECT *
+            FROM 'iso_week_2025_2026.parquet'
+        ),
+
+        -- =========================
+        -- MAP DATA KE WEEK BULAN TERPILIH
+        -- =========================
+        week_map AS (
+            SELECT
+                b.SKU,
+                b.Value,
+                m.WEEK_IN_MONTH
+            FROM base b
+            JOIN month_week_map m
+                ON b.ISO_WEEK = m.ISO_Week
+                AND b.TAHUN = m.Tahun_ISO
+            WHERE m.Month_ISO = {bulan_hist}   -- bulan ISO yang dipilih
+            AND m.Tahun_ISO = {tahun_hist}   -- tahun ISO yang dipilih
+        ),
+        -- =========================
+        -- AGGREGATE WEEKLY
+        -- =========================
+        weekly_agg AS (
+            SELECT
+                SKU,
+                AVG(CASE WHEN WEEK_IN_MONTH = 1 THEN Value END) AS W1,
+                AVG(CASE WHEN WEEK_IN_MONTH = 2 THEN Value END) AS W2,
+                AVG(CASE WHEN WEEK_IN_MONTH = 3 THEN Value END) AS W3,
+                AVG(CASE WHEN WEEK_IN_MONTH = 4 THEN Value END) AS W4,
+                AVG(CASE WHEN WEEK_IN_MONTH = 5 THEN Value END) AS W5
+            FROM week_map
+            GROUP BY SKU
+        ),
+
+        -- =========================
+        -- PIVOT FINAL
+        -- =========================
+        pivoted AS (
+            SELECT
+                s.SKU,
+                {','.join([f'm."{lbl}"' for lbl in month_labels])},
+                m."{avg12m_label}",
+                m."{avg3m_label}",
+                COALESCE(w.W1,0) AS "Historical Week: W1 {calendar.month_abbr[bulan_hist]}-{tahun_hist}",
+                COALESCE(w.W2,0) AS "Historical Week: W2 {calendar.month_abbr[bulan_hist]}-{tahun_hist}",
+                COALESCE(w.W3,0) AS "Historical Week: W3 {calendar.month_abbr[bulan_hist]}-{tahun_hist}",
+                COALESCE(w.W4,0) AS "Historical Week: W4 {calendar.month_abbr[bulan_hist]}-{tahun_hist}",
+                COALESCE(w.W5,0) AS "Historical Week: W5 {calendar.month_abbr[bulan_hist]}-{tahun_hist}"
+            FROM sku_list s
+            LEFT JOIN monthly_agg m ON s.SKU = m.SKU
+            LEFT JOIN weekly_agg w ON s.SKU = w.SKU
+        ),
+
+        -- =========================
+        -- GRAND TOTAL
+        -- =========================
         grand_total AS (
             SELECT
                 'GRAND TOTAL' AS SKU,
-                {",".join([f'SUM("{lbl}") AS "{lbl}"' for lbl in month_labels])},
-                AVG("{avg12m_col}") AS "{avg12m_col}",
-                AVG("{avg3m_col}") AS "{avg3m_col}",
-                {','.join([f'AVG("W{w} {calendar.month_abbr[max_bulan]}-{max_tahun}") AS "W{w} {calendar.month_abbr[max_bulan]}-{max_tahun}"' for w in range(1,6)])}
-            FROM base
+                {','.join([f'SUM("{lbl}") AS "{lbl}"' for lbl in month_labels])},
+                AVG("{avg12m_label}") AS "{avg12m_label}",
+                AVG("{avg3m_label}")  AS "{avg3m_label}",
+                AVG("Historical Week: W1 {calendar.month_abbr[bulan_hist]}-{tahun_hist}") AS "W1 {calendar.month_abbr[bulan_hist]}-{tahun_hist}",
+                AVG("Historical Week: W2 {calendar.month_abbr[bulan_hist]}-{tahun_hist}") AS "W2 {calendar.month_abbr[bulan_hist]}-{tahun_hist}",
+                AVG("Historical Week: W3 {calendar.month_abbr[bulan_hist]}-{tahun_hist}") AS "W3 {calendar.month_abbr[bulan_hist]}-{tahun_hist}",
+                AVG("Historical Week: W4 {calendar.month_abbr[bulan_hist]}-{tahun_hist}") AS "W4 {calendar.month_abbr[bulan_hist]}-{tahun_hist}",
+                AVG("Historical Week: W5 {calendar.month_abbr[bulan_hist]}-{tahun_hist}") AS "W5 {calendar.month_abbr[bulan_hist]}-{tahun_hist}"
+            FROM pivoted
         ),
+
         final AS (
-            SELECT * FROM base
+            SELECT * FROM pivoted
             UNION ALL
             SELECT * FROM grand_total
         )
+
         SELECT *
         FROM final
         ORDER BY
@@ -447,6 +741,49 @@ def sales():
         # SHOW TABLE
         # =========================
         st.caption(f"Periode Pivot: {month_labels[0]} → {month_labels[-1]} (Closed Month)")
+        st.markdown(
+                    f"""
+                    <style>
+                    .hover-box3 {{
+                        border: 1px solid #1D546D;
+                        border-radius: 10px;
+                        padding: 5px;
+                        text-align: center;
+                        background-color: #1D546D;
+                        color: white;
+                        transition: 0.3s;
+                        position: relative;
+                        margin-top: 1px;
+                        font-size: 18px;
+                        font-family: 'Poppins', sans-serif;
+                    }}
+                    .hover-box3:hover {{
+                        background-color: #1D546D;
+                        transform: scale(1.01);
+                    }}
+                    .download-btn {{
+                        display: none;
+                        margin-top: 10px;
+                    }}
+                    .hover-box3:hover .download-btn {{
+                        display: block;
+                    }}
+                    a.download-link {{
+                        color: white;
+                        text-decoration: none;
+                        padding: 5px 10px;
+                        background-color: #1D546D;
+                        border-radius: 5px;
+                        font-weight: bold;
+                    }}
+                    </style>
+
+                    <div class="hover-box3">
+                        <strong>SUMMARY</strong>
+                    </div>
+                    <p></p>
+                    """, unsafe_allow_html=True
+                )
         st.dataframe(
             df_display.style.apply(
                 lambda r: ["font-weight: bold"]*len(r) if r["SKU"]=="GRAND TOTAL" else [""]*len(r),
@@ -454,3 +791,4 @@ def sales():
             ),
             use_container_width=True
         )
+
