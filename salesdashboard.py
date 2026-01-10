@@ -9,8 +9,8 @@ st.title(" BSI Dashboard")
 st.info("Selamat Datang di Website BSI Dashboard!")
 selected = option_menu(
     menu_title= None,
-    options=["Introduction","Dashboard Sales"],
-    icons=["calendar", "archive"],
+    options=["Introduction","Dashboard Sales","Dashboard Mapping LD GT"],
+    icons=["calendar", "book"],
     orientation="horizontal",
     styles={
         "container": {"padding": "0!important", "background-color": "#f0f2f6"},
@@ -54,3 +54,6 @@ if selected == "Introduction":
 elif selected == "Dashboard Sales":
     import sales
     sales.sales()
+elif selected == "Dashboard Mapping LD GT":
+    import ldgtmap
+    ldgtmap.ldgtmap()
