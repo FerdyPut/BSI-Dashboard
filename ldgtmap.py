@@ -84,10 +84,53 @@ def ldgtmap():
 
             col1, col2 = st.columns(2)
             total_value = df['NET VALUE'].sum()
-            col1.metric("📊 Total Data", f"{len(df):,}")
-            col2.metric("💰 Total Value", f"{total_value:,.2f}" if total_value else "—")
+            with st.container(border=True):
+                col1.metric("📊 Total Data", f"{len(df):,}")
+                col2.metric("💰 Total Value", f"{total_value:,.2f}" if total_value else "—")
 
-            st.subheader("Dataframe LDGT")
+            st.markdown(
+                    f"""
+                    <style>
+                    .hover-box {{
+                        border: 1px solid #215E61;
+                        border-radius: 10px;
+                        padding: 5px;
+                        text-align: center;
+                        background-color: #215E61;
+                        color: white;
+                        transition: 0.3s;
+                        position: relative;
+                        margin-top: 1px;
+                        font-size: 18px;
+                        font-family: 'Poppins', sans-serif;
+                    }}
+                    .hover-box:hover {{
+                        background-color: #215E61;
+                        transform: scale(1.01);
+                    }}
+                    .download-btn {{
+                        display: none;
+                        margin-top: 10px;
+                    }}
+                    .hover-box:hover .download-btn {{
+                        display: block;
+                    }}
+                    a.download-link {{
+                        color: white;
+                        text-decoration: none;
+                        padding: 5px 10px;
+                        background-color: #215E61;
+                        border-radius: 5px;
+                        font-weight: bold;
+                    }}
+                    </style>
+
+                    <div class="hover-box">
+                        <strong>TABEL DATASET</strong>
+                    </div>
+                    <p></p>
+                    """, unsafe_allow_html=True
+                )
             st.dataframe(df)
 
         else:
