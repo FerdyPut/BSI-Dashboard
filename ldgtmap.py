@@ -165,10 +165,8 @@ def ldgtmap():
                 df['lon'] = df['CABANG'].map(lambda x: cabang_lookup.get(x, (None, None))[1])
                 st.session_state['df'] = df
 
-            # Filter valid lat/lon & NET VALUE numeric
-            map_data = df.dropna(subset=['lat','lon','NET VALUE']).copy()
-            map_data['NET VALUE'] = pd.to_numeric(map_data['NET VALUE'], errors='coerce')
-            map_data = map_data.dropna(subset=['NET VALUE'])
+            # Filter valid lat/lon
+            map_data = df.dropna(subset=['lat', 'lon']).copy()
 
             if not map_data.empty:
                 # Filter kategori (opsional)
@@ -178,16 +176,24 @@ def ldgtmap():
                     map_data = map_data[map_data['Kategori'].isin(selected_kategori)]
 
                 # =========================
+                # Agregasi jumlah per Cabang
+                # =========================
+                map_data_agg = map_data.groupby(['CABANG', 'lat', 'lon'], as_index=False).agg(
+                    jumlah=('CABANG', 'count'),           # jumlah transaksi / rows
+                    total_value=('NET VALUE', 'sum')      # total value
+                )
+
+                # =========================
                 # Plotly Bubble Map
                 # =========================
                 fig = px.scatter_mapbox(
-                    map_data,
+                    map_data_agg,
                     lat="lat",
                     lon="lon",
-                    size="NET VALUE",             # ukuran bubble
+                    size="jumlah",                        # bubble = jumlah transaksi
                     hover_name="CABANG",
-                    hover_data={"NET VALUE": True},
-                    color="Kategori" if "Kategori" in map_data.columns else None,
+                    hover_data={"jumlah": True, "total_value": True},
+                    color=None,                            # bisa diganti "Kategori" kalau ada
                     zoom=5,
                     height=600
                 )
@@ -198,6 +204,7 @@ def ldgtmap():
                 st.plotly_chart(fig, use_container_width=True)
 
             else:
-                st.warning("Tidak ada data lat/lon atau NET VALUE valid.")
+                st.warning("Tidak ada data lat/lon valid.")
         else:
             st.info("Silakan upload file dulu di tab Upload Data.")
+
