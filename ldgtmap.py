@@ -145,8 +145,36 @@ def ldgtmap():
 
             st.subheader("Mapping LDGT")
 
-            # Pastikan ada kolom lat & lon
-            if 'lat' in df.columns and 'lon' in df.columns:
+            # =========================
+            # Lookup table Cabang → (lat, lon)
+            # =========================
+            cabang_lookup = {
+                "Banda Aceh": (5.5483, 95.3238),
+                "Bengkulu": (-3.8000, 102.2650),
+                "Lampung": (-5.4296, 105.2620),
+                "Jambi": (-1.6100, 103.6100),
+                "Kotabumi": (-5.4547, 105.7716),
+                "Lhoksuemawe": (5.1919, 97.1456),
+                "Medan": (3.5952, 98.6722),
+                "Metro": (-5.1156, 105.2983),
+                "Padang": (-0.9491, 100.3543),
+                "Palembang": (-2.9761, 104.7754),
+                "Pekanbaru": (0.5333, 101.4500),
+                "Pematang Siantar": (2.9639, 99.0621)
+            }
+
+            # =========================
+            # Tambahkan kolom lat/lon kalau belum ada
+            # =========================
+            if 'lat' not in df.columns or 'lon' not in df.columns:
+                df['lat'] = df['Cabang'].map(lambda x: cabang_lookup.get(x, None))
+                df['lon'] = df['Cabang'].map(lambda x: cabang_lookup.get(x, None))
+                st.session_state['df'] = df  # update session_state
+
+            # =========================
+            # Pastikan ada lat/lon untuk map
+            # =========================
+            if df['lat'].notna().any() and df['lon'].notna().any():
                 # Pilihan kategori (opsional)
                 if 'Kategori' in df.columns:
                     kategori_list = df['Kategori'].unique().tolist()
@@ -157,6 +185,6 @@ def ldgtmap():
 
                 st.map(map_data[['lat', 'lon']])
             else:
-                st.warning("Kolom 'lat' dan 'lon' harus ada di data untuk menampilkan peta.")
+                st.warning("Tidak ada data lat/lon valid. Pastikan Cabang sesuai lookup.")
         else:
             st.info("Silakan upload file dulu di tab Upload Data.")
