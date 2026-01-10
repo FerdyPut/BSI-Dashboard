@@ -194,8 +194,8 @@ def ldgtmap():
                     color="KET",                           # warna berdasarkan KET
                     hover_name="CABANG",
                     hover_data={"jumlah": True, "total_value": True, "KET": True},
-                    zoom=8,
-                    height=800
+                    zoom=5,
+                    height=500
                 )
 
                 fig.update_layout(mapbox_style="open-street-map")
