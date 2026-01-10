@@ -141,7 +141,49 @@ def ldgtmap():
         if 'df' in st.session_state:
             df = st.session_state['df']
 
-            st.subheader("Mapping LDGT (Bubble Map - Plotly)")
+            st.markdown(
+                    f"""
+                    <style>
+                    .hover-box1 {{
+                        border: 1px solid #233D4D;
+                        border-radius: 10px;
+                        padding: 5px;
+                        text-align: center;
+                        background-color: #233D4D;
+                        color: white;
+                        transition: 0.3s;
+                        position: relative;
+                        margin-top: 1px;
+                        font-size: 18px;
+                        font-family: 'Poppins', sans-serif;
+                    }}
+                    .hover-box1:hover {{
+                        background-color: #233D4D;
+                        transform: scale(1.01);
+                    }}
+                    .download-btn {{
+                        display: none;
+                        margin-top: 10px;
+                    }}
+                    .hover-box1:hover .download-btn {{
+                        display: block;
+                    }}
+                    a.download-link {{
+                        color: white;
+                        text-decoration: none;
+                        padding: 5px 10px;
+                        background-color: #233D4D;
+                        border-radius: 5px;
+                        font-weight: bold;
+                    }}
+                    </style>
+
+                    <div class="hover-box1">
+                        <strong>MAPPING SALES LDGT BY AREA</strong>
+                    </div>
+                    <p></p>
+                    """, unsafe_allow_html=True
+                )
 
             # Lookup table Cabang → (lat, lon)
             cabang_lookup = {
@@ -166,7 +208,7 @@ def ldgtmap():
                 st.session_state['df'] = df
 
             # Filter valid lat/lon
-            map_data = df.dropna(subset=['lat', 'lon']).copy()
+            map_data = df.dropna(subset=['lat','lon']).copy()
 
             if not map_data.empty:
                 # Filter kategori (opsional)
@@ -178,24 +220,37 @@ def ldgtmap():
                 # =========================
                 # Agregasi jumlah per Cabang & KET
                 # =========================
-                map_data_agg = map_data.groupby(['CABANG', 'lat', 'lon', 'KET'], as_index=False).agg(
-                    jumlah=('CABANG', 'count'),           # jumlah transaksi / rows
-                    total_value=('NET VALUE', 'sum')      # total value
+                map_data_agg = map_data.groupby(['CABANG','lat','lon','KET'], as_index=False).agg(
+                    jumlah=('CABANG','count'),
+                    total_value=('NET VALUE','sum')
                 )
 
                 # =========================
-                # Plotly Bubble Map dengan warna berdasarkan KET
+                # Custom warna KET
                 # =========================
+                # Ganti sesuai isi KET di data
+                color_map = {}
+                ket_unique = map_data_agg['KET'].unique()
+                # contoh default 2 warna: merah & coklat tua
+                colors = ["red","saddlebrown"]
+                for i, k in enumerate(ket_unique):
+                    color_map[k] = colors[i % len(colors)]
+
+                # =========================
+                # Plotly Bubble Map
+                # =========================
+                zoom_level = st.slider("Zoom Peta", min_value=1, max_value=15, value=8)
                 fig = px.scatter_mapbox(
                     map_data_agg,
                     lat="lat",
                     lon="lon",
-                    size="jumlah",                        # bubble = jumlah transaksi
-                    color="KET",                           # warna berdasarkan KET
+                    size="jumlah",
+                    color="KET",
+                    color_discrete_map=color_map,
                     hover_name="CABANG",
                     hover_data={"jumlah": True, "total_value": True, "KET": True},
-                    zoom=5,
-                    height=500
+                    zoom=zoom_level,
+                    height=600
                 )
 
                 fig.update_layout(mapbox_style="open-street-map")
