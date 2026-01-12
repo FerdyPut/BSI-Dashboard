@@ -7,13 +7,13 @@ from pathlib import Path
 
 
 
-LDGT_DIR = Path("data/ldgt")
-LDGT_DIR.mkdir(parents=True, exist_ok=True)
-
-LDGT_FILE = LDGT_DIR / "latest.xlsx"
-DEFAULT_FILE = LDGT_DIR / "default.xlsx"
-
 def ldgtmap():
+    LDGT_DIR = Path("data/ldgt")
+    LDGT_DIR.mkdir(parents=True, exist_ok=True)
+
+    PARQUET_FILE = LDGT_DIR / "latest.parquet"
+    DEFAULT_PARQUET = LDGT_DIR / "default.parquet"
+    
     st.title("LDGT Dashboard")
 
     # =========================
@@ -79,34 +79,44 @@ def ldgtmap():
                 type=["csv", "xlsx"]
             )
 
+            # =========================
+            # LOAD DATA EXISTING (AUTO)
+            # =========================
+            if uploaded_file is None:
+                if 'df' not in st.session_state:
+                    if PARQUET_FILE.exists():
+                        st.session_state['df'] = pd.read_parquet(PARQUET_FILE)
+                        st.success("📦 Data terakhir berhasil dimuat (Parquet)")
+                    elif DEFAULT_PARQUET.exists():
+                        st.session_state['df'] = pd.read_parquet(DEFAULT_PARQUET)
+                        st.info("📂 Menggunakan data default")
+                    else:
+                        st.warning("Belum ada data tersimpan")
+
+            # =========================
+            # PROSES FILE BARU
+            # =========================
             if uploaded_file is not None:
                 st.write(f"📄 File dipilih: **{uploaded_file.name}**")
 
-                if st.button("🚀 Proses", key="prosesldgt"):
-                    # =========================
-                    # Baca file
-                    # =========================
-                    if uploaded_file.name.endswith(".csv"):
-                        df = pd.read_csv(uploaded_file)
-                    else:
-                        df = pd.read_excel(uploaded_file)
+                if st.button("🚀 Proses & Simpan", key="proses_ldgt"):
+                    with st.spinner("Memproses data..."):
+                        # baca file
+                        if uploaded_file.name.endswith(".csv"):
+                            df = pd.read_csv(uploaded_file)
+                        else:
+                            df = pd.read_excel(uploaded_file)
 
-                    # =========================
-                    # Simpan ke storage (overwrite)
-                    # =========================
-                    df.to_excel(LDGT_FILE, index=False)
+                        # simpan parquet (overwrite)
+                        df.to_parquet(PARQUET_FILE, index=False)
 
-                    # =========================
-                    # Simpan ke session
-                    # =========================
-                    st.session_state['df'] = df
+                        # simpan ke session
+                        st.session_state['df'] = df
 
                     st.success(
-                        f"✅ Data berhasil diproses & disimpan "
+                        f"✅ Data berhasil disimpan "
                         f"({len(df):,} baris)"
                     )
-            else:
-                st.warning("Silakan pilih file terlebih dahulu.")
 
 
     # =========================
