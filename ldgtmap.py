@@ -191,7 +191,7 @@ def ldgtmap():
                         </style>
 
                         <div class="hover-box1">
-                            <strong>MAPPING SALES LDGT BY AREA</strong>
+                            <strong>MAPPING SALES LDGT BY AREA SUMATERA</strong>
                         </div>
                         <p></p>
                         """, unsafe_allow_html=True
