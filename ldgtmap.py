@@ -261,7 +261,7 @@ def ldgtmap():
                 "ScatterplotLayer",
                 data=agg,
                 get_position='[lon, lat]',
-                get_radius='jumlah * 300',
+                get_radius='sqrt(jumlah) * 500',
                 get_fill_color='color',
                 pickable=True,
                 auto_highlight=True
