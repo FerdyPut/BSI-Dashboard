@@ -143,61 +143,64 @@ def ldgtmap():
         else:
             st.info("Silakan upload file dulu di tab Upload Data.")
 
-    # =========================
-    # TAB 3: Analytics - Mapping
-    # =========================
 
 
+
+    # =========================
+    # TAB 3: Analytics - Mapping (PyDeck)
+    # =========================
     with tab3:
         if 'df' in st.session_state:
             df = st.session_state['df']
 
             st.markdown(
-                    f"""
-                    <style>
-                    .hover-box1 {{
-                        border: 1px solid #233D4D;
-                        border-radius: 10px;
-                        padding: 5px;
-                        text-align: center;
-                        background-color: #233D4D;
-                        color: white;
-                        transition: 0.3s;
-                        position: relative;
-                        margin-top: 1px;
-                        font-size: 18px;
-                        font-family: 'Poppins', sans-serif;
-                    }}
-                    .hover-box1:hover {{
-                        background-color: #233D4D;
-                        transform: scale(1.01);
-                    }}
-                    .download-btn {{
-                        display: none;
-                        margin-top: 10px;
-                    }}
-                    .hover-box1:hover .download-btn {{
-                        display: block;
-                    }}
-                    a.download-link {{
-                        color: white;
-                        text-decoration: none;
-                        padding: 5px 10px;
-                        background-color: #233D4D;
-                        border-radius: 5px;
-                        font-weight: bold;
-                    }}
-                    </style>
+                        f"""
+                        <style>
+                        .hover-box1 {{
+                            border: 1px solid #233D4D;
+                            border-radius: 10px;
+                            padding: 5px;
+                            text-align: center;
+                            background-color: #233D4D;
+                            color: white;
+                            transition: 0.3s;
+                            position: relative;
+                            margin-top: 1px;
+                            font-size: 18px;
+                            font-family: 'Poppins', sans-serif;
+                        }}
+                        .hover-box1:hover {{
+                            background-color: #233D4D;
+                            transform: scale(1.01);
+                        }}
+                        .download-btn {{
+                            display: none;
+                            margin-top: 10px;
+                        }}
+                        .hover-box1:hover .download-btn {{
+                            display: block;
+                        }}
+                        a.download-link {{
+                            color: white;
+                            text-decoration: none;
+                            padding: 5px 10px;
+                            background-color: #233D4D;
+                            border-radius: 5px;
+                            font-weight: bold;
+                        }}
+                        </style>
 
-                    <div class="hover-box1">
-                        <strong>MAPPING SALES LDGT BY AREA</strong>
-                    </div>
-                    <p></p>
-                    """, unsafe_allow_html=True
-                )
+                        <div class="hover-box1">
+                            <strong>MAPPING SALES LDGT BY AREA</strong>
+                        </div>
+                        <p></p>
+                        """, unsafe_allow_html=True
+                    )
 
 
-            # Lookup table Cabang → (lat, lon)
+            # =========================
+            # Lookup CABANG → lat/lon
+            # =========================
             cabang_lookup = {
                 "Banda Aceh": (5.5483, 95.3238),
                 "Bengkulu": (-3.8000, 102.2650),
@@ -213,62 +216,90 @@ def ldgtmap():
                 "Pematang Siantar": (2.9639, 99.0621)
             }
 
-            # Tambahkan lat/lon jika belum ada
+            # =========================
+            # Tambah lat/lon
+            # =========================
             if 'lat' not in df.columns or 'lon' not in df.columns:
                 df['lat'] = df['CABANG'].map(lambda x: cabang_lookup.get(x, (None, None))[0])
                 df['lon'] = df['CABANG'].map(lambda x: cabang_lookup.get(x, (None, None))[1])
                 st.session_state['df'] = df
 
-            # Filter valid lat/lon
-            map_data = df.dropna(subset=['lat','lon']).copy()
+            # =========================
+            # Clean & aggregate
+            # =========================
+            df['NET VALUE'] = pd.to_numeric(df['NET VALUE'], errors='coerce')
 
-            if not map_data.empty:
-                # Filter kategori (opsional)
-                if 'Kategori' in map_data.columns:
-                    kategori_list = map_data['Kategori'].unique().tolist()
-                    selected_kategori = st.multiselect("Pilih Kategori", kategori_list, default=kategori_list)
-                    map_data = map_data[map_data['Kategori'].isin(selected_kategori)]
-
-                # =========================
-                # AGREGASI PER CABANG & KET → titik peta minim, cepat untuk 120k row
-                # =========================
-                map_data_agg = map_data.groupby(['CABANG','lat','lon','KET'], as_index=False).agg(
-                    jumlah=('CABANG','count'),
-                    total_value=('NET VALUE','sum')
+            agg = (
+                df.dropna(subset=['lat', 'lon'])
+                .groupby(['CABANG', 'KET', 'lat', 'lon'], as_index=False)
+                .agg(
+                    jumlah=('NET VALUE', 'count'),
+                    total_value=('NET VALUE', 'sum')
                 )
+            )
 
-                # =========================
-                # Custom warna KET
-                # =========================
-                # Contoh default 2 warna: merah & coklat tua
-                color_map = {}
-                ket_unique = map_data_agg['KET'].unique()
-                colors = ["red","saddlebrown"]
-                for i, k in enumerate(ket_unique):
-                    color_map[k] = colors[i % len(colors)]
+            if agg.empty:
+                st.warning("Data tidak cukup untuk ditampilkan.")
+                st.stop()
 
-                # =========================
-                # Plotly Bubble Map
-                # =========================
-                fig = px.scatter_mapbox(
-                    map_data_agg,
-                    lat="lat",
-                    lon="lon",
-                    size="jumlah",
-                    color="KET",
-                    color_discrete_map=color_map,
-                    hover_name="CABANG",
-                    hover_data={"jumlah": True, "total_value": True, "KET": True},
-                    zoom=6,
-                    height=600
+            # =========================
+            # Warna berdasarkan KET
+            # =========================
+            color_map = {
+                "MERAH": [200, 0, 0, 160],       # merah
+                "COKLAT": [101, 67, 33, 160]     # coklat tua
+            }
+
+            agg['color'] = agg['KET'].map(
+                lambda x: color_map.get(str(x).upper(), [120, 120, 120, 140])
+            )
+
+            # =========================
+            # Bubble Layer
+            # =========================
+            layer = pdk.Layer(
+                "ScatterplotLayer",
+                data=agg,
+                get_position='[lon, lat]',
+                get_radius='jumlah * 300',
+                get_fill_color='color',
+                pickable=True,
+                auto_highlight=True
+            )
+
+            # =========================
+            # View State (lebih dekat)
+            # =========================
+            view_state = pdk.ViewState(
+                latitude=agg['lat'].mean(),
+                longitude=agg['lon'].mean(),
+                zoom=6.5,
+                pitch=0
+            )
+
+            # =========================
+            # Tooltip
+            # =========================
+            tooltip = {
+                "html": """
+                <b>{CABANG}</b><br/>
+                KET: {KET}<br/>
+                Jumlah: {jumlah}<br/>
+                Total Value: {total_value}
+                """,
+                "style": {"color": "white"}
+            }
+
+            # =========================
+            # Render
+            # =========================
+            st.pydeck_chart(
+                pdk.Deck(
+                    layers=[layer],
+                    initial_view_state=view_state,
+                    tooltip=tooltip
                 )
+            )
 
-                fig.update_layout(mapbox_style="open-street-map")
-                fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
-
-                st.plotly_chart(fig, use_container_width=True)
-
-            else:
-                st.warning("Tidak ada data lat/lon valid.")
         else:
             st.info("Silakan upload file dulu di tab Upload Data.")
