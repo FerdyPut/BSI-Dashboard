@@ -257,7 +257,7 @@ def ldgtmap():
             }
 
             agg['color'] = agg['KET'].map(color_map)
-
+            st.write(agg[['KET','color']].head(10))
             # =========================
             # Bubble Layer
             # =========================
