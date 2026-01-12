@@ -285,7 +285,7 @@ def ldgtmap():
             # Tooltip
             # =========================
             agg['value_rp'] = (
-                agg['NET VALUE']
+                agg['total_value']
                 .round(0)
                 .astype(int)
                 .apply(lambda x: f"Rp {x:,.0f}".replace(",", "."))
