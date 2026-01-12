@@ -268,7 +268,8 @@ def ldgtmap():
                 get_position='[lon, lat]',
                 get_radius='radius',
                 get_fill_color='color',
-                pickable=True
+                pickable=True,
+                auto_highlight=True
             )
 
             # =========================
