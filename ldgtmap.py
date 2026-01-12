@@ -257,7 +257,6 @@ def ldgtmap():
             }
 
             agg['color'] = agg['KET'].map(color_map)
-            st.write(agg[['KET','color']].head(10))
             # =========================
             # Bubble Layer
             # =========================
@@ -286,7 +285,7 @@ def ldgtmap():
             # Tooltip
             # =========================
             agg['value_rp'] = (
-                agg['total_value']
+                agg['NET VALUE']
                 .round(0)
                 .astype(int)
                 .apply(lambda x: f"Rp {x:,.0f}".replace(",", "."))
