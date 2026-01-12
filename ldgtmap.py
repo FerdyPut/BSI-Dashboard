@@ -285,12 +285,17 @@ def ldgtmap():
             # =========================
             # Tooltip
             # =========================
+            agg['value_rp'] = (
+                agg['total_value']
+                .round(0)
+                .astype(int)
+                .apply(lambda x: f"Rp {x:,.0f}".replace(",", "."))
+            )
             tooltip = {
                 "html": """
                 <b>{CABANG}</b><br/>
-                KET: {KET}<br/>
-                Jumlah: {jumlah}<br/>
-                Total Value: {total_value}
+                DATA: {KET}<br/>
+                NET VALUE: {value_rp}
                 """,
                 "style": {"color": "white"}
             }
