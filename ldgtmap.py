@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import pydeck as pdk
 import plotly.express as px
-
+import numpy as np
 
 def ldgtmap():
     st.title("LDGT Dashboard")
@@ -257,11 +257,12 @@ def ldgtmap():
             # =========================
             # Bubble Layer
             # =========================
+            agg['radius'] = np.sqrt(agg['jumlah']) * 500
             layer = pdk.Layer(
                 "ScatterplotLayer",
                 data=agg,
                 get_position='[lon, lat]',
-                get_radius='sqrt(jumlah) * 500',
+                get_radius='radius',
                 get_fill_color='color',
                 pickable=True,
                 auto_highlight=True
