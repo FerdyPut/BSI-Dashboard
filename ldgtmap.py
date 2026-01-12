@@ -246,13 +246,12 @@ def ldgtmap():
             # Warna berdasarkan KET
             # =========================
             color_map = {
-                "MERAH": [200, 0, 0, 160],       # merah
-                "COKLAT": [101, 67, 33, 160]     # coklat tua
+                "YES": [220, 38, 38, 180],   # 🔴 Merah
+                "NO":  [234, 179, 8, 180]    # 🟡 Kuning
             }
 
-            agg['color'] = agg['KET'].map(
-                lambda x: color_map.get(str(x).upper(), [120, 120, 120, 140])
-            )
+
+            agg['color'] = agg['KET'].map(color_map)
 
             # =========================
             # Bubble Layer
