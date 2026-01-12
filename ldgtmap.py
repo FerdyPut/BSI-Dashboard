@@ -150,10 +150,8 @@ def ldgtmap():
     # TAB 3: Analytics - Mapping (PyDeck)
     # =========================
     with tab3:
-        if 'df' in st.session_state:
-            df = st.session_state['df']
-
-            st.markdown(
+        
+        st.markdown(
                         f"""
                         <style>
                         .hover-box1 {{
@@ -197,6 +195,8 @@ def ldgtmap():
                         """, unsafe_allow_html=True
                     )
 
+        if 'df' in st.session_state:
+            df = st.session_state['df']
 
             # =========================
             # Lookup CABANG → lat/lon
@@ -261,7 +261,7 @@ def ldgtmap():
             # Bubble Layer
             # =========================
             agg['radius'] = np.sqrt(agg['jumlah']) * 500
-            
+
             # Pastikan total_value numeric
             agg['total_value'] = pd.to_numeric(agg['total_value'], errors='coerce').fillna(0)
             # === BUAT value_rp SEBELUM layer ===
