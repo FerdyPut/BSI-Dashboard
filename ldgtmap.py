@@ -3,6 +3,15 @@ import pandas as pd
 import pydeck as pdk
 import plotly.express as px
 import numpy as np
+from pathlib import Path
+
+
+
+LDGT_DIR = Path("data/ldgt")
+LDGT_DIR.mkdir(parents=True, exist_ok=True)
+
+LDGT_FILE = LDGT_DIR / "latest.xlsx"
+DEFAULT_FILE = LDGT_DIR / "default.xlsx"
 
 def ldgtmap():
     st.title("LDGT Dashboard")
@@ -17,61 +26,88 @@ def ldgtmap():
     # =========================
     with tab1:
         st.markdown(
-                            f"""
-                            <style>
-                            .hover-box2 {{
-                                border: 1px solid #005461;
-                                border-radius: 10px;
-                                padding: 5px;
-                                text-align: center;
-                                background-color: #005461;
-                                color: white;
-                                transition: 0.3s;
-                                position: relative;
-                                margin-top: 1px;
-                                font-size: 18px;
-                                font-family: 'Poppins', sans-serif;
-                            }}
-                            .hover-box2:hover {{
-                                background-color: #005461;
-                                transform: scale(1.01);
-                            }}
-                            .download-btn {{
-                                display: none;
-                                margin-top: 10px;
-                            }}
-                            .hover-box2:hover .download-btn {{
-                                display: block;
-                            }}
-                            a.download-link {{
-                                color: white;
-                                text-decoration: none;
-                                padding: 5px 10px;
-                                background-color: #005461;
-                                border-radius: 5px;
-                                font-weight: bold;
-                            }}
-                            </style>
+                                f"""
+                                <style>
+                                .hover-box2 {{
+                                    border: 1px solid #005461;
+                                    border-radius: 10px;
+                                    padding: 5px;
+                                    text-align: center;
+                                    background-color: #005461;
+                                    color: white;
+                                    transition: 0.3s;
+                                    position: relative;
+                                    margin-top: 1px;
+                                    font-size: 18px;
+                                    font-family: 'Poppins', sans-serif;
+                                }}
+                                .hover-box2:hover {{
+                                    background-color: #005461;
+                                    transform: scale(1.01);
+                                }}
+                                .download-btn {{
+                                    display: none;
+                                    margin-top: 10px;
+                                }}
+                                .hover-box2:hover .download-btn {{
+                                    display: block;
+                                }}
+                                a.download-link {{
+                                    color: white;
+                                    text-decoration: none;
+                                    padding: 5px 10px;
+                                    background-color: #005461;
+                                    border-radius: 5px;
+                                    font-weight: bold;
+                                }}
+                                </style>
 
-                            <div class="hover-box2">
-                                <strong>UPLOAD FILE</strong>
-                            </div>
-                            <p></p>
-                            """, unsafe_allow_html=True
-                        )
-        st.info("Harap memasukkan file yang akan di mapping dengan struktur kolomnya: Tahun | Month | Distributor | Cabang | SKU | Value | SKU | KET")
+                                <div class="hover-box2">
+                                    <strong>UPLOAD FILE</strong>
+                                </div>
+                                <p></p>
+                                """, unsafe_allow_html=True
+                            )
+        st.info(
+            "Harap memasukkan file yang akan di mapping dengan struktur kolomnya: "
+            "Tahun | Month | Distributor | Cabang | SKU | Value | SKU | KET"
+        )
+
         with st.container(border=True):
-            uploaded_file = st.file_uploader("Pilih file", type=["csv", "xlsx"])
+            uploaded_file = st.file_uploader(
+                "Pilih file",
+                type=["csv", "xlsx"]
+            )
 
             if uploaded_file is not None:
-                if uploaded_file.name.endswith(".csv"):
-                    df = pd.read_csv(uploaded_file)
-                else:
-                    df = pd.read_excel(uploaded_file)
-            
-                if st.button("Proses!", key='prosesldgt'):
+                st.write(f"📄 File dipilih: **{uploaded_file.name}**")
+
+                if st.button("🚀 Proses", key="prosesldgt"):
+                    # =========================
+                    # Baca file
+                    # =========================
+                    if uploaded_file.name.endswith(".csv"):
+                        df = pd.read_csv(uploaded_file)
+                    else:
+                        df = pd.read_excel(uploaded_file)
+
+                    # =========================
+                    # Simpan ke storage (overwrite)
+                    # =========================
+                    df.to_excel(LDGT_FILE, index=False)
+
+                    # =========================
+                    # Simpan ke session
+                    # =========================
                     st.session_state['df'] = df
-                    st.success("File berhasil diupload!")
+
+                    st.success(
+                        f"✅ Data berhasil diproses & disimpan "
+                        f"({len(df):,} baris)"
+                    )
+            else:
+                st.warning("Silakan pilih file terlebih dahulu.")
+
 
     # =========================
     # TAB 2: View Data
