@@ -7,6 +7,12 @@ from pathlib import Path
 
 
 
+def normalize_for_parquet(df):
+    for col in df.columns:
+        if df[col].dtype == 'object':
+            df[col] = df[col].astype(str)
+    return df
+
 def ldgtmap():
     LDGT_DIR = Path("data/ldgt")
     LDGT_DIR.mkdir(parents=True, exist_ok=True)
@@ -107,6 +113,11 @@ def ldgtmap():
                         else:
                             df = pd.read_excel(uploaded_file)
 
+                        
+                        # 🔥 WAJIB: normalisasi object → string
+                        for col in df.select_dtypes(include=['object']).columns:
+                            df[col] = df[col].astype(str)
+
                         # simpan parquet (overwrite)
                         df.to_parquet(PARQUET_FILE, index=False)
 
@@ -125,6 +136,7 @@ def ldgtmap():
     with tab2:
         if 'df' in st.session_state:
             df = st.session_state['df']
+            
 
             with st.container(border=True):
                 col1, col2 = st.columns(2)
