@@ -250,7 +250,6 @@ def ldgtmap():
                 # =========================
                 # Plotly Bubble Map
                 # =========================
-                zoom_level = st.slider("Zoom Peta", min_value=1, max_value=15, value=5)
                 fig = px.scatter_mapbox(
                     map_data_agg,
                     lat="lat",
@@ -260,7 +259,7 @@ def ldgtmap():
                     color_discrete_map=color_map,
                     hover_name="CABANG",
                     hover_data={"jumlah": True, "total_value": True, "KET": True},
-                    zoom=zoom_level,
+                    zoom=6,
                     height=600
                 )
 
