@@ -245,11 +245,16 @@ def ldgtmap():
             # =========================
             # Warna berdasarkan KET
             # =========================
+            agg['KET'] = (
+                    agg['KET']
+                    .astype(str)
+                    .str.strip()
+                    .str.upper()
+                )
             color_map = {
-                "YES": [220, 38, 38, 180],   # 🔴 Merah
-                "NO":  [234, 179, 8, 180]    # 🟡 Kuning
+                "YES": [220, 38, 38, 180],
+                "NO":  [234, 179, 8, 180]
             }
-
 
             agg['color'] = agg['KET'].map(color_map)
 
