@@ -2,7 +2,7 @@ from streamlit_option_menu import option_menu
 import streamlit as st
 
 # Page config
-st.set_page_config(page_title="BSI - Support Information", layout="wide")
+st.set_page_config(page_title="BSI Dashboard", layout="wide")
 
 # NAVIGATION BAR (ATAS)
 st.title(" BSI Dashboard")
