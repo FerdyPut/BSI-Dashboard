@@ -252,8 +252,8 @@ def ldgtmap():
                     .str.upper()
                 )
             color_map = {
-                "YES": [220, 38, 38, 180],
-                "NO":  [234, 179, 8, 180]
+                "SELL IN": [220, 38, 38, 180],
+                "SELL OUT":  [234, 179, 8, 180]
             }
 
             agg['color'] = agg['KET'].map(color_map)
