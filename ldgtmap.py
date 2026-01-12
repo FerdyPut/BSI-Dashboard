@@ -93,6 +93,7 @@ def ldgtmap():
                     if PARQUET_FILE.exists():
                         st.session_state['df'] = pd.read_parquet(PARQUET_FILE)
                         st.success("📦 Data terakhir berhasil dimuat (Parquet)")
+                        st.info("Jika terdapat data baru maka upload file tipe excel untuk lakukan replace")
                     elif DEFAULT_PARQUET.exists():
                         st.session_state['df'] = pd.read_parquet(DEFAULT_PARQUET)
                         st.info("📂 Menggunakan data default")
