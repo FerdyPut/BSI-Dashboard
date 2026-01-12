@@ -261,6 +261,18 @@ def ldgtmap():
             # Bubble Layer
             # =========================
             agg['radius'] = np.sqrt(agg['jumlah']) * 500
+            
+            # Pastikan total_value numeric
+            agg['total_value'] = pd.to_numeric(agg['total_value'], errors='coerce').fillna(0)
+            # === BUAT value_rp SEBELUM layer ===
+            agg['value_rp'] = (
+                agg['total_value']
+                .fillna(0)
+                .astype(float)
+                .round(0)
+                .astype(int)
+                .apply(lambda x: f"Rp {x:,.0f}".replace(",", "."))
+            )
             layer = pdk.Layer(
                 "ScatterplotLayer",
                 data=agg,
@@ -284,14 +296,6 @@ def ldgtmap():
             # =========================
             # Tooltip
             # =========================
-            # Pastikan total_value numeric
-            agg['total_value'] = pd.to_numeric(agg['total_value'], errors='coerce').fillna(0)
-            agg['value_rp'] = (
-                agg['total_value']
-                .round(0)
-                .astype(int)
-                .apply(lambda x: f"Rp {x:,.0f}".replace(",", "."))
-            )
             tooltip = {
                 "html": """
                 <b>{CABANG}</b><br/>
