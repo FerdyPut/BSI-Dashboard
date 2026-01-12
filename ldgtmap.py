@@ -252,7 +252,6 @@ def ldgtmap():
 
 
             agg['color'] = agg['KET'].map(color_map)
-            agg['color'] = agg['color'].fillna([160, 160, 160, 160])  # fallback
 
             # =========================
             # Bubble Layer
@@ -264,8 +263,7 @@ def ldgtmap():
                 get_position='[lon, lat]',
                 get_radius='radius',
                 get_fill_color='color',
-                pickable=True,
-                auto_highlight=True
+                pickable=True
             )
 
             # =========================
