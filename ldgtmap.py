@@ -284,6 +284,8 @@ def ldgtmap():
             # =========================
             # Tooltip
             # =========================
+            # Pastikan total_value numeric
+            agg['total_value'] = pd.to_numeric(agg['total_value'], errors='coerce').fillna(0)
             agg['value_rp'] = (
                 agg['total_value']
                 .round(0)
