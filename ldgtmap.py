@@ -252,6 +252,7 @@ def ldgtmap():
 
 
             agg['color'] = agg['KET'].map(color_map)
+            agg['color'] = agg['color'].fillna([160, 160, 160, 160])  # fallback
 
             # =========================
             # Bubble Layer
