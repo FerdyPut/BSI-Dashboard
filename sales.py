@@ -977,7 +977,7 @@ def sales():
                 ) AS sales_prev
             FROM 'data/parquet/target/*.parquet'
             GROUP BY SKU
-        )
+        ),
 
         -- =========================
         -- PIVOT FINAL + GROWTH PER SKU
