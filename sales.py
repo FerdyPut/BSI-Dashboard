@@ -784,12 +784,12 @@ def sales():
         # =========================
         # FORMAT RUPIAH
         # =========================
-
-        for c in df.columns:
+        df_display = df.copy()
+        for c in df_display.columns:
             if c != "SKU":
-                df[c] = pd.to_numeric(df[c], errors="coerce")
+                df_display[c] = pd.to_numeric(df_display[c], errors="coerce")
 
-        money_cols = [c for c in df.columns if c != "SKU"]
+        money_cols = [c for c in df_display.columns if c != "SKU"]
 
         col_config = {
             c: column_config.NumberColumn(
@@ -798,6 +798,7 @@ def sales():
             )
             for c in money_cols
         }
+
         # =========================
         # SHOW TABLE
         # =========================
@@ -846,7 +847,7 @@ def sales():
                 )
         st.badge(f"Periode Pivot: {month_labels[0]} → {month_labels[-1]} (Closed Month)", color='blue')
         st.dataframe(
-            df,
+            df_display,
             column_config=col_config,
             use_container_width=True
         )
