@@ -936,22 +936,10 @@ def sales():
         -- =========================
         target_agg AS (
             SELECT
-                SUM(TRY_CAST(t.Value AS DOUBLE)) AS Target
+                COALESCE(SUM(TRY_CAST(t.Value AS DOUBLE)), 0) AS Target
             FROM 'data/parquet/target/*.parquet' t
-            WHERE
-                CAST(t.MONTH AS INTEGER) = {bulan_hist}
-                AND CAST(t.TAHUN AS INTEGER) = {tahun_hist}
-                AND EXISTS (
-                    SELECT 1
-                    FROM base b
-                    WHERE
-                        b.REGION = t.REGION
-                        AND b.AREA = t.AREA
-                        AND b.DISTRIBUTOR = t.DISTRIBUTOR
-                        AND b."SALES OFFICE" = t."SALES OFFICE"
-                        AND b."GROUP" = t."GROUP"
-                )
-        ),
+            WHERE CAST(t.TAHUN AS INTEGER) = {tahun_hist}
+        )
         
         pivoted AS (
             SELECT
