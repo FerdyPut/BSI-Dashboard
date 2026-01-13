@@ -1062,8 +1062,6 @@ def sales():
                     SUM(COALESCE(s_next.sales_next,0)) / NULLIF(SUM(COALESCE(t_next.Target,0)),0) * 100, 2
                 ) AS "Achieved (%)"
             FROM pivoted
-            LEFT JOIN sales_next s_next ON pivoted.SKU = s_next.SKU
-            LEFT JOIN target_next t_next ON pivoted.SKU = t_next.SKU
         ),
 
 
