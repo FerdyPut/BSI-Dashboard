@@ -951,6 +951,19 @@ def sales():
 
 
         -- =========================
+        -- SALES BULAN SEKARANG DAN SEBELUMNYA
+        -- =========================
+        sales_for_growth AS (
+            SELECT
+                SKU,
+                SUM(CASE WHEN EXTRACT(MONTH FROM DT) = {bulan_hist} AND EXTRACT(YEAR FROM DT) = {tahun_hist} THEN Sales ELSE 0 END) AS sales_curr,
+                SUM(CASE WHEN EXTRACT(MONTH FROM DT) = {bulan_hist - 1} AND EXTRACT(YEAR FROM DT) = {tahun_hist - 1} THEN Sales ELSE 0 END) AS sales_prev
+            FROM 'data/parquet/target/*.parquet'
+            GROUP BY SKU
+        ),        
+
+
+        -- =========================
         -- PIVOT FINAL + GROWTH PER SKU
         -- =========================
         pivoted AS (
@@ -969,12 +982,21 @@ def sales():
                 COALESCE(w.W1,0) + COALESCE(w.W2,0) + COALESCE(w.W3,0) + COALESCE(w.W4,0) + COALESCE(w.W5,0)
                     AS "Total Historical Week",
 
-                COALESCE(t.Target,0) AS Target
+                COALESCE(t.Target,0) AS Target,
+
+                -- =========================
+                -- GROWTH (%)
+                -- =========================
+                CASE 
+                    WHEN g.sales_prev = 0 THEN NULL
+                    ELSE ROUND((g.sales_curr - g.sales_prev) * 100.0 / g.sales_prev, 2)
+                END AS "Growth (%)"
 
             FROM sku_list s
             LEFT JOIN monthly_agg m ON s.SKU = m.SKU
             LEFT JOIN weekly_agg w ON s.SKU = w.SKU
             LEFT JOIN target_agg t ON s.SKU = t.SKU
+            LEFT JOIN sales_for_growth g ON s.SKU = g.SKU
         ),
 
         -- =========================
