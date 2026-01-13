@@ -781,9 +781,6 @@ def sales():
 
         df = con.execute(sql).df()
 
-        # =========================
-        # FORMAT RUPIAH
-        # =========================
         # pastikan numeric
         for c in df.columns:
             if c != "SKU":
@@ -836,7 +833,6 @@ def sales():
                     """, unsafe_allow_html=True
                 )
         st.badge(f"Periode Pivot: {month_labels[0]} → {month_labels[-1]} (Closed Month)", color='blue')
-        
         st.dataframe(
             df,
             use_container_width=True
