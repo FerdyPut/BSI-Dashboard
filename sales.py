@@ -956,11 +956,25 @@ def sales():
         sales_for_growth AS (
             SELECT
                 SKU,
-                SUM( CAST(MONTH AS INTEGER) = {bulan_hist} AND CAST(TAHUN AS INTEGER) = {tahun_hist} THEN Sales ELSE 0 END) AS sales_curr,
-                SUM( CAST(MONTH AS INTEGER) = {bulan_hist - 1} AND CAST(TAHUN AS INTEGER) = {tahun_hist - 1} THEN Sales ELSE 0 END) AS sales_prev
+                SUM(
+                    CASE 
+                        WHEN CAST(MONTH AS INTEGER) = {bulan_hist} 
+                        AND CAST(TAHUN AS INTEGER) = {tahun_hist} 
+                        THEN Sales 
+                        ELSE 0 
+                    END
+                ) AS sales_curr,
+                SUM(
+                    CASE 
+                        WHEN CAST(MONTH AS INTEGER) = {bulan_hist_prev} 
+                        AND CAST(TAHUN AS INTEGER) = {tahun_prev} 
+                        THEN Sales 
+                        ELSE 0 
+                    END
+                ) AS sales_prev
             FROM 'data/parquet/target/*.parquet'
             GROUP BY SKU
-        ),        
+        ),
 
 
         -- =========================
