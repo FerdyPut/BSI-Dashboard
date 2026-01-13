@@ -839,6 +839,18 @@ def sales():
 
 
         # =========================
+        # MAP BULAN (1-12) KE NAMA KOLOM
+        # =========================
+        month_name_map = {
+            1: "Jan", 2: "Feb", 3: "Mar", 4: "Apr",
+            5: "May", 6: "Jun", 7: "Jul", 8: "Aug",
+            9: "Sep", 10: "Oct", 11: "Nov", 12: "Dec"
+        }
+
+        growth_col = month_name_map[bulan_hist]  # Bulan hist saat ini
+        prev_year = tahun_hist - 1  # Tahun sebelumnya untuk growth
+
+        # =========================
         # FINAL QUERY + GRAND TOTAL
         # =========================
         sql = f"""
@@ -898,11 +910,10 @@ def sales():
         -- =========================
         monthly_agg_prev AS (
             SELECT
-                UPPER(TRIM(SKU)) AS SKU,
+                SKU,
                 {','.join(month_exprs)}
             FROM base
-            WHERE TAHUN = {tahun_hist}-1
-            GROUP BY SKU
+            WHERE TAHUN = {prev_year}
         ),
 
         -- =========================
@@ -974,20 +985,15 @@ def sales():
                 COALESCE(w.W4,0) AS "Historical Week: W4 {calendar.month_abbr[bulan_hist]}-{tahun_hist}",
                 COALESCE(w.W5,0) AS "Historical Week: W5 {calendar.month_abbr[bulan_hist]}-{tahun_hist}",
 
-                COALESCE(w.W1,0)
-                + COALESCE(w.W2,0)
-                + COALESCE(w.W3,0)
-                + COALESCE(w.W4,0)
-                + COALESCE(w.W5,0)
+                COALESCE(w.W1,0) + COALESCE(w.W2,0) + COALESCE(w.W3,0) + COALESCE(w.W4,0) + COALESCE(w.W5,0)
                     AS "Total Historical Week",
 
-                COALESCE(t.Target, 0) AS Target,
+                COALESCE(t.Target,0) AS Target,
 
-                -- ✅ GROWTH (%) berdasarkan bulan_hist
+                -- GROWTH (%)
                 CASE
-                    WHEN COALESCE(m_prev."{month_labels[bulan_hist-1]}",0) = 0 THEN 0
-                    ELSE ((COALESCE(m."{month_labels[bulan_hist-1]}",0) - COALESCE(m_prev."{month_labels[bulan_hist-1]}",0))
-                        / COALESCE(m_prev."{month_labels[bulan_hist-1]}",0)) * 100
+                    WHEN COALESCE(m_prev."{growth_col}",0) = 0 THEN NULL
+                    ELSE ((COALESCE(m."{growth_col}",0) - COALESCE(m_prev."{growth_col}",0)) / COALESCE(m_prev."{growth_col}",0)) * 100
                 END AS "Growth (%)"
 
             FROM sku_list s
@@ -1013,7 +1019,7 @@ def sales():
                 SUM("Historical Week: W5 {calendar.month_abbr[bulan_hist]}-{tahun_hist}") AS "W5 {calendar.month_abbr[bulan_hist]}-{tahun_hist}",
                 SUM("Total Historical Week") AS "Total Historical Week",
                 SUM(Target) AS Target,
-                NULL AS "Growth (%)"
+                AVG("Growth (%)") AS "Growth (%)""
             FROM pivoted
         ),
 
