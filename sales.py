@@ -1058,7 +1058,7 @@ def sales():
                 SUM("Total Historical Week") AS "Total Historical Week",
                 SUM(Target) AS Target,
                 NULL AS "Growth (%)",
-                NULL AS "Achieved (%)"
+                ROUND(SUM("Achieved (%)"), 2) AS "Achieved (%)"  -- SUM Achieved (%) supaya valid agregasi
             FROM pivoted
         ),
 
