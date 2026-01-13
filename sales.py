@@ -932,7 +932,7 @@ def sales():
 
         
         -- =========================
-        -- TARGET AGGREGATION
+        -- TARGET AGGREGATION (PER BULAN)
         -- =========================
         target_agg AS (
             SELECT
@@ -943,7 +943,8 @@ def sales():
                 "GROUP",
                 SUM(TRY_CAST(Value AS DOUBLE)) AS Target
             FROM 'data/parquet/target/*.parquet'
-            WHERE Value IS NOT NULL
+            WHERE CAST(BULAN AS INTEGER) = {bulan_hist}
+            AND CAST(TAHUN AS INTEGER) = {tahun_hist}
             GROUP BY
                 REGION,
                 AREA,
@@ -951,7 +952,6 @@ def sales():
                 "SALES OFFICE",
                 "GROUP"
         ),
-
         
         -- =========================
         -- PIVOT FINAL
