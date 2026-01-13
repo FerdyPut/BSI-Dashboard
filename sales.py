@@ -1031,7 +1031,7 @@ def sales():
                 SUM("Historical Week: W5 {calendar.month_abbr[bulan_hist]}-{tahun_hist}") AS "W5 {calendar.month_abbr[bulan_hist]}-{tahun_hist}",
                 SUM("Total Historical Week") AS "Total Historical Week",
                 SUM(Target) AS Target,
-                NULL AS "Growth (%)
+                NULL AS "Growth (%)"
             FROM pivoted
         ),
 
