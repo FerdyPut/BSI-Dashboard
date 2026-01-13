@@ -961,7 +961,7 @@ def sales():
 
 
         -- =========================
-        -- PIVOT FINAL
+        -- PIVOT FINAL + GROWTH PER SKU
         -- =========================
         pivoted AS (
             SELECT
@@ -983,10 +983,9 @@ def sales():
                 + COALESCE(w.W5,0)
                     AS "Total Historical Week",
 
-                COALESCE(t.Target, 0) AS Target
+                COALESCE(t.Target, 0) AS Target,
 
-                -- =========================
-                -- GROWTH (%) = (CurrentMonth - PrevYearSameMonth) / PrevYearSameMonth * 100
+                -- GROWTH (%)
                 CASE
                     WHEN COALESCE(m_prev."{month_labels[-1]}",0) = 0 THEN NULL
                     ELSE ((COALESCE(m."{month_labels[-1]}",0) - COALESCE(m_prev."{month_labels[-1]}",0))
@@ -1014,21 +1013,11 @@ def sales():
                 SUM("Historical Week: W3 {calendar.month_abbr[bulan_hist]}-{tahun_hist}") AS "W3 {calendar.month_abbr[bulan_hist]}-{tahun_hist}",
                 SUM("Historical Week: W4 {calendar.month_abbr[bulan_hist]}-{tahun_hist}") AS "W4 {calendar.month_abbr[bulan_hist]}-{tahun_hist}",
                 SUM("Historical Week: W5 {calendar.month_abbr[bulan_hist]}-{tahun_hist}") AS "W5 {calendar.month_abbr[bulan_hist]}-{tahun_hist}",
-                SUM(
-                            COALESCE("Historical Week: W1 {calendar.month_abbr[bulan_hist]}-{tahun_hist}",0) +
-                            COALESCE("Historical Week: W2 {calendar.month_abbr[bulan_hist]}-{tahun_hist}",0) +
-                            COALESCE("Historical Week: W3 {calendar.month_abbr[bulan_hist]}-{tahun_hist}",0) +
-                            COALESCE("Historical Week: W4 {calendar.month_abbr[bulan_hist]}-{tahun_hist}",0) +
-                            COALESCE("Historical Week: W5 {calendar.month_abbr[bulan_hist]}-{tahun_hist}",0)
-                        ) AS "Total Historical Week",
+                SUM("Total Historical Week") AS "Total Historical Week",
                 SUM(Target) AS Target,
-                -- GROWTH (%) for Grand Total: SUM(Current) / SUM(PrevYear) - 1
-                CASE
-                    WHEN SUM(COALESCE(m_prev."{month_labels[-1]}",0)) = 0 THEN NULL
-                    ELSE ((SUM(COALESCE(m."{month_labels[-1]}",0)) - SUM(COALESCE(m_prev."{month_labels[-1]}",0)))
-                        / SUM(COALESCE(m_prev."{month_labels[-1]}",0))) * 100
-                END AS "Growth (%)"
+                NULL AS "Growth (%)"
             FROM pivoted
+
         ),
 
         final AS (
