@@ -911,10 +911,11 @@ def sales():
         monthly_agg_prev AS (
             SELECT
                 SKU,
-                {','.join(month_exprs)}
+                {','.join([f'SUM("{lbl}") AS "{lbl}"' for lbl in month_labels])}
             FROM base
             WHERE TAHUN = {prev_year}
-        ),
+            GROUP BY SKU
+        )
 
         -- =========================
         -- BACA ISO WEEK TABLE DARI EXCEL
