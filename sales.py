@@ -983,9 +983,9 @@ def sales():
 
                 COALESCE(t.Target, 0) AS Target,
 
-                -- GROWTH (%)
+                -- ✅ GROWTH (%) berdasarkan bulan_hist
                 CASE
-                    WHEN COALESCE(m_prev."{month_labels[bulan_hist-1]}", 0) = 0 THEN NULL
+                    WHEN COALESCE(m_prev."{month_labels[bulan_hist-1]}",0) = 0 THEN 0
                     ELSE ((COALESCE(m."{month_labels[bulan_hist-1]}",0) - COALESCE(m_prev."{month_labels[bulan_hist-1]}",0))
                         / COALESCE(m_prev."{month_labels[bulan_hist-1]}",0)) * 100
                 END AS "Growth (%)"
