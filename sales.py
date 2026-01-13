@@ -896,6 +896,18 @@ def sales():
         ),
 
         -- =========================
+        -- AGGREGATE BULANAN (previous year)
+        -- =========================
+        monthly_agg_prev AS (
+            SELECT
+                SKU,
+                {','.join(month_exprs)}
+            FROM base
+            WHERE TAHUN = {tahun_hist}-1
+            GROUP BY SKU
+        ),
+
+        -- =========================
         -- BACA ISO WEEK TABLE DARI EXCEL
         -- =========================
         month_week_map AS (
@@ -973,8 +985,17 @@ def sales():
 
                 COALESCE(t.Target, 0) AS Target
 
+                -- =========================
+                -- GROWTH (%) = (CurrentMonth - PrevYearSameMonth) / PrevYearSameMonth * 100
+                CASE
+                    WHEN COALESCE(m_prev."{month_labels[-1]}",0) = 0 THEN NULL
+                    ELSE ((COALESCE(m."{month_labels[-1]}",0) - COALESCE(m_prev."{month_labels[-1]}",0))
+                        / COALESCE(m_prev."{month_labels[-1]}",0)) * 100
+                END AS "Growth (%)"
+
             FROM sku_list s
             LEFT JOIN monthly_agg m ON s.SKU = m.SKU
+            LEFT JOIN monthly_agg_prev m_prev ON s.SKU = m_prev.SKU
             LEFT JOIN weekly_agg w ON s.SKU = w.SKU
             LEFT JOIN target_agg t ON s.SKU = t.SKU
         ),
@@ -1000,7 +1021,13 @@ def sales():
                             COALESCE("Historical Week: W4 {calendar.month_abbr[bulan_hist]}-{tahun_hist}",0) +
                             COALESCE("Historical Week: W5 {calendar.month_abbr[bulan_hist]}-{tahun_hist}",0)
                         ) AS "Total Historical Week",
-                SUM(Target) AS Target
+                SUM(Target) AS Target,
+                -- GROWTH (%) for Grand Total: SUM(Current) / SUM(PrevYear) - 1
+                CASE
+                    WHEN SUM(COALESCE(m_prev."{month_labels[-1]}",0)) = 0 THEN NULL
+                    ELSE ((SUM(COALESCE(m."{month_labels[-1]}",0)) - SUM(COALESCE(m_prev."{month_labels[-1]}",0)))
+                        / SUM(COALESCE(m_prev."{month_labels[-1]}",0))) * 100
+                END AS "Growth (%)"
             FROM pivoted
         ),
 
