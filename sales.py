@@ -846,6 +846,13 @@ def sales():
             bulan_hist_prev = bulan_hist - 1
             tahun_prev = tahun_hist
 
+        if bulan_hist == 12:
+            bulan_next = 1
+            tahun_next = tahun_hist + 1
+        else:
+            bulan_next = bulan_hist + 1
+            tahun_next = tahun_hist
+
         # =========================
         # FINAL QUERY + GRAND TOTAL
         # =========================
@@ -979,6 +986,21 @@ def sales():
             GROUP BY SKU
         ),
 
+        
+        sales_next AS (
+                SELECT
+                    SKU,
+                    SUM(
+                        CASE
+                            WHEN CAST(MONTH AS INTEGER) = {bulan_next}
+                            AND CAST(TAHUN AS INTEGER) = {tahun_next}
+                            THEN CAST("Value" AS DOUBLE)
+                            ELSE 0
+                        END
+                    ) AS sales_next
+                FROM 'data/parquet/target/*.parquet'
+                GROUP BY SKU
+            ),
         -- =========================
         -- PIVOT FINAL + GROWTH PER SKU
         -- =========================
@@ -1006,13 +1028,17 @@ def sales():
                 CASE 
                     WHEN g.sales_prev = 0 THEN NULL
                     ELSE ROUND((g.sales_curr - g.sales_prev) / g.sales_prev * 100, 2)
-                END AS "Growth (%)"
+                END AS "Growth (%)",
+
+                COALESCE(s_next.sales_next, 0) / NULLIF(t_next.Target, 0) * 100 AS "Achieved (%)"
 
             FROM sku_list s
             LEFT JOIN monthly_agg m ON s.SKU = m.SKU
             LEFT JOIN weekly_agg w ON s.SKU = w.SKU
             LEFT JOIN target_agg t ON s.SKU = t.SKU
             LEFT JOIN sales_for_growth g ON s.SKU = g.SKU
+            LEFT JOIN sales_next s_next ON g.SKU = s_next.SKU
+            LEFT JOIN target_next t_next ON g.SKU = t_next.SKU
         ),
 
         -- =========================
