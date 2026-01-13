@@ -754,13 +754,13 @@ def sales():
             SELECT
                 'GRAND TOTAL' AS SKU,
                 {','.join([f'SUM("{lbl}") AS "{lbl}"' for lbl in month_labels])},
-                AVG("{avg12m_label}") AS "{avg12m_label}",
-                AVG("{avg3m_label}")  AS "{avg3m_label}",
-                AVG("Historical Week: W1 {calendar.month_abbr[bulan_hist]}-{tahun_hist}") AS "W1 {calendar.month_abbr[bulan_hist]}-{tahun_hist}",
-                AVG("Historical Week: W2 {calendar.month_abbr[bulan_hist]}-{tahun_hist}") AS "W2 {calendar.month_abbr[bulan_hist]}-{tahun_hist}",
-                AVG("Historical Week: W3 {calendar.month_abbr[bulan_hist]}-{tahun_hist}") AS "W3 {calendar.month_abbr[bulan_hist]}-{tahun_hist}",
-                AVG("Historical Week: W4 {calendar.month_abbr[bulan_hist]}-{tahun_hist}") AS "W4 {calendar.month_abbr[bulan_hist]}-{tahun_hist}",
-                AVG("Historical Week: W5 {calendar.month_abbr[bulan_hist]}-{tahun_hist}") AS "W5 {calendar.month_abbr[bulan_hist]}-{tahun_hist}"
+                SUM("{avg12m_label}") / COUNT(*) AS "{avg12m_label}",
+                SUM("{avg3m_label}") / COUNT(*) AS "{avg3m_label}",
+                SUM("Historical Week: W1 {calendar.month_abbr[bulan_hist]}-{tahun_hist}") / COUNT(*) AS "W1 {calendar.month_abbr[bulan_hist]}-{tahun_hist}",
+                SUM("Historical Week: W2 {calendar.month_abbr[bulan_hist]}-{tahun_hist}") / COUNT(*) AS "W2 {calendar.month_abbr[bulan_hist]}-{tahun_hist}",
+                SUM("Historical Week: W3 {calendar.month_abbr[bulan_hist]}-{tahun_hist}") / COUNT(*) AS "W3 {calendar.month_abbr[bulan_hist]}-{tahun_hist}",
+                SUM("Historical Week: W4 {calendar.month_abbr[bulan_hist]}-{tahun_hist}") / COUNT(*) AS "W4 {calendar.month_abbr[bulan_hist]}-{tahun_hist}",
+                SUM("Historical Week: W5 {calendar.month_abbr[bulan_hist]}-{tahun_hist}") / COUNT(*) AS "W5 {calendar.month_abbr[bulan_hist]}-{tahun_hist}"
             FROM pivoted
         ),
 
