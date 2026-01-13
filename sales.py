@@ -943,9 +943,11 @@ def sales():
                 COALESCE(SUM(TRY_CAST(t.Value AS DOUBLE)), 0) AS Target
             FROM 'data/parquet/target/*.parquet' t
             WHERE CAST(t.TAHUN AS INTEGER) = {tahun_hist}
+            AND CAST(t.MONTH AS INTEGER) = {bulan_hist}
             GROUP BY t.SKU
         ),
-        
+
+
         -- =========================
         -- PIVOT FINAL
         -- =========================
