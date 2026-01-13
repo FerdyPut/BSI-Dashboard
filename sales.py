@@ -936,10 +936,13 @@ def sales():
         -- =========================
         target_agg AS (
             SELECT
+                t.SKU,
                 COALESCE(SUM(TRY_CAST(t.Value AS DOUBLE)), 0) AS Target
             FROM 'data/parquet/target/*.parquet' t
             WHERE CAST(t.TAHUN AS INTEGER) = {tahun_hist}
-            GROUP BY SKU
+            -- kalau target bulanan, aktifkan:
+            -- AND CAST(t.MONTH AS INTEGER) = {bulan_hist}
+            GROUP BY t.SKU
         ),
         
         pivoted AS (
@@ -963,11 +966,12 @@ def sales():
                     AS "Total Historical Week",
 
                 -- TARGET GLOBAL (MATCH FILTER)
-                (SELECT Target FROM target_agg) AS Target
+                COALESCE(t.Target, 0) AS Target
 
             FROM sku_list s
             LEFT JOIN monthly_agg m ON s.SKU = m.SKU
             LEFT JOIN weekly_agg  w ON s.SKU = w.SKU
+            LEFT JOIN target_agg t ON s.SKU = t.SKU
         ),
 
         -- =========================
