@@ -743,7 +743,15 @@ def sales():
                 COALESCE(w.W2,0) AS "Historical Week: W2 {calendar.month_abbr[bulan_hist]}-{tahun_hist}",
                 COALESCE(w.W3,0) AS "Historical Week: W3 {calendar.month_abbr[bulan_hist]}-{tahun_hist}",
                 COALESCE(w.W4,0) AS "Historical Week: W4 {calendar.month_abbr[bulan_hist]}-{tahun_hist}",
-                COALESCE(w.W5,0) AS "Historical Week: W5 {calendar.month_abbr[bulan_hist]}-{tahun_hist}"
+                COALESCE(w.W5,0) AS "Historical Week: W5 {calendar.month_abbr[bulan_hist]}-{tahun_hist}",
+
+                COALESCE(w.W1,0)
+                    + COALESCE(w.W2,0)
+                    + COALESCE(w.W3,0)
+                    + COALESCE(w.W4,0)
+                    + COALESCE(w.W5,0)
+                        AS "Total Historical Week"
+
             FROM sku_list s
             LEFT JOIN monthly_agg m ON s.SKU = m.SKU
             LEFT JOIN weekly_agg w ON s.SKU = w.SKU
@@ -762,7 +770,14 @@ def sales():
                 SUM("Historical Week: W2 {calendar.month_abbr[bulan_hist]}-{tahun_hist}") AS "W2 {calendar.month_abbr[bulan_hist]}-{tahun_hist}",
                 SUM("Historical Week: W3 {calendar.month_abbr[bulan_hist]}-{tahun_hist}") AS "W3 {calendar.month_abbr[bulan_hist]}-{tahun_hist}",
                 SUM("Historical Week: W4 {calendar.month_abbr[bulan_hist]}-{tahun_hist}") AS "W4 {calendar.month_abbr[bulan_hist]}-{tahun_hist}",
-                SUM("Historical Week: W5 {calendar.month_abbr[bulan_hist]}-{tahun_hist}") AS "W5 {calendar.month_abbr[bulan_hist]}-{tahun_hist}"
+                SUM("Historical Week: W5 {calendar.month_abbr[bulan_hist]}-{tahun_hist}") AS "W5 {calendar.month_abbr[bulan_hist]}-{tahun_hist}",
+                SUM(
+                            COALESCE("Historical Week: W1 {calendar.month_abbr[bulan_hist]}-{tahun_hist}",0) +
+                            COALESCE("Historical Week: W2 {calendar.month_abbr[bulan_hist]}-{tahun_hist}",0) +
+                            COALESCE("Historical Week: W3 {calendar.month_abbr[bulan_hist]}-{tahun_hist}",0) +
+                            COALESCE("Historical Week: W4 {calendar.month_abbr[bulan_hist]}-{tahun_hist}",0) +
+                            COALESCE("Historical Week: W5 {calendar.month_abbr[bulan_hist]}-{tahun_hist}",0)
+                        ) AS "Total Historical Week"
             FROM pivoted
         ),
 
