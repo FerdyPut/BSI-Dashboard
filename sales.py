@@ -1054,9 +1054,23 @@ def sales():
             LEFT JOIN weekly_agg w ON s.SKU = w.SKU
             LEFT JOIN target_agg t ON s.SKU = t.SKU
             LEFT JOIN sales_for_growth g ON s.SKU = g.SKU
-            LEFT JOIN sales_next s_next ON g.SKU = s_next.SKU
-            LEFT JOIN target_next t_next ON g.SKU = t_next.SKU
         ),
+
+        
+        -- =========================
+        -- Pivoted dengan Achieved (%)
+        -- =========================
+        pivoted_with_achieved AS (
+            SELECT
+                p.*,
+                ROUND(
+                    COALESCE(s_next.sales_next,0) / NULLIF(COALESCE(t_next.Target,0),0) * 100, 2
+                ) AS "Achieved (%)"
+            FROM pivoted p
+            LEFT JOIN sales_next s_next ON p.SKU = s_next.SKU
+            LEFT JOIN target_next t_next ON p.SKU = t_next.SKU
+        ),
+
 
         -- =========================
         -- GRAND TOTAL
@@ -1067,23 +1081,23 @@ def sales():
                 {','.join([f'SUM("{lbl}") AS "{lbl}"' for lbl in month_labels])},
                 SUM("{avg12m_label}") AS "{avg12m_label}",
                 SUM("{avg3m_label}") AS "{avg3m_label}",
-                SUM("Historical Week: W1 {calendar.month_abbr[bulan_hist]}-{tahun_hist}") AS "W1 {calendar.month_abbr[bulan_hist]}-{tahun_hist}",
-                SUM("Historical Week: W2 {calendar.month_abbr[bulan_hist]}-{tahun_hist}") AS "W2 {calendar.month_abbr[bulan_hist]}-{tahun_hist}",
-                SUM("Historical Week: W3 {calendar.month_abbr[bulan_hist]}-{tahun_hist}") AS "W3 {calendar.month_abbr[bulan_hist]}-{tahun_hist}",
-                SUM("Historical Week: W4 {calendar.month_abbr[bulan_hist]}-{tahun_hist}") AS "W4 {calendar.month_abbr[bulan_hist]}-{tahun_hist}",
-                SUM("Historical Week: W5 {calendar.month_abbr[bulan_hist]}-{tahun_hist}") AS "W5 {calendar.month_abbr[bulan_hist]}-{tahun_hist}",
+                SUM("Historical Week: W1 {calendar.month_abbr[bulan_hist]}-{tahun_hist}") AS "Historical Week: W1 {calendar.month_abbr[bulan_hist]}-{tahun_hist}",
+                SUM("Historical Week: W2 {calendar.month_abbr[bulan_hist]}-{tahun_hist}") AS "Historical Week: W2 {calendar.month_abbr[bulan_hist]}-{tahun_hist}",
+                SUM("Historical Week: W3 {calendar.month_abbr[bulan_hist]}-{tahun_hist}") AS "Historical Week: W3 {calendar.month_abbr[bulan_hist]}-{tahun_hist}",
+                SUM("Historical Week: W4 {calendar.month_abbr[bulan_hist]}-{tahun_hist}") AS "Historical Week: W4 {calendar.month_abbr[bulan_hist]}-{tahun_hist}",
+                SUM("Historical Week: W5 {calendar.month_abbr[bulan_hist]}-{tahun_hist}") AS "Historical Week: W5 {calendar.month_abbr[bulan_hist]}-{tahun_hist}",
                 SUM("Total Historical Week") AS "Total Historical Week",
                 SUM(Target) AS Target,
                 NULL AS "Growth (%)",
                 ROUND(
-                    SUM(COALESCE(s_next.sales_next,0)) / NULLIF(SUM(COALESCE(t_next.Target,0)),0) * 100, 2
+                    SUM(COALESCE("Achieved (%)",0)) / COUNT(*) , 2
                 ) AS "Achieved (%)"
-            FROM pivoted
+            FROM pivoted_with_achieved
         ),
 
 
         final AS (
-            SELECT * FROM pivoted
+            SELECT * FROM pivoted_with_achieved
             UNION ALL
             SELECT * FROM grand_total
         )
