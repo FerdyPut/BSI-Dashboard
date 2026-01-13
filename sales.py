@@ -963,7 +963,7 @@ def sales():
         -- =========================
         pivoted AS (
             SELECT
-                UPPER(TRIM(SKU)) AS s.SKU,
+                s.SKU,
                 {','.join([f'm."{lbl}"' for lbl in month_labels])},
                 m."{avg12m_label}",
                 m."{avg3m_label}",
