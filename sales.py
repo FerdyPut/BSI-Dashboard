@@ -953,7 +953,6 @@ def sales():
             GROUP BY SKU
         ),
 
-
         -- =========================
         -- SALES BULAN SEKARANG DAN SEBELUMNYA
         -- =========================
@@ -962,24 +961,23 @@ def sales():
                 SKU,
                 SUM(
                     CASE 
-                        WHEN CAST(MONTH AS INTEGER) = {bulan_hist} 
-                        AND CAST(TAHUN AS INTEGER) = {tahun_hist} 
-                        THEN CAST(Value AS DOUBLE)
+                        WHEN CAST("MONTH" AS INTEGER) = {bulan_hist} 
+                        AND CAST("TAHUN" AS INTEGER) = {tahun_hist} 
+                        THEN CAST("Value" AS DOUBLE)
                         ELSE 0
                     END
                 ) AS sales_curr,
                 SUM(
                     CASE 
-                        WHEN CAST(MONTH AS INTEGER) = {bulan_hist_prev} 
-                        AND CAST(TAHUN AS INTEGER) = {tahun_prev} 
-                        THEN CAST(Value AS DOUBLE)
+                        WHEN CAST("MONTH" AS INTEGER) = {bulan_hist_prev} 
+                        AND CAST("TAHUN" AS INTEGER) = {tahun_prev} 
+                        THEN CAST("Value" AS DOUBLE)
                         ELSE 0
                     END
                 ) AS sales_prev
             FROM 'data/parquet/target/*.parquet'
             GROUP BY SKU
-        ),
-
+        )
 
         -- =========================
         -- PIVOT FINAL + GROWTH PER SKU
