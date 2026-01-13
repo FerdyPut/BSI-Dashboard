@@ -843,14 +843,19 @@ def sales():
         # =========================
         sql = f"""
         WITH base AS (
-            SELECT
-                SKU,
-                TRY_CAST(Value AS DOUBLE) AS Value,
-                CAST(WEEK AS INTEGER)  AS ISO_WEEK,
-                CAST(TAHUN AS INTEGER) AS TAHUN,
-                DATE '1899-12-30' + CAST(TANGGAL AS INTEGER) AS DT
-            FROM "{parquet_path}"
-            {where_sql}
+                SELECT
+                    SKU,
+                    REGION,
+                    AREA,
+                    DISTRIBUTOR,
+                    "SALES OFFICE",
+                    "GROUP",
+                    TRY_CAST(Value AS DOUBLE) AS Value,
+                    CAST(WEEK AS INTEGER)  AS ISO_WEEK,
+                    CAST(TAHUN AS INTEGER) AS TAHUN,
+                    DATE '1899-12-30' + CAST(TANGGAL AS INTEGER) AS DT
+                FROM "{parquet_path}"
+                {where_sql}
         ),
 
         -- =========================
@@ -925,6 +930,29 @@ def sales():
             GROUP BY SKU
         ),
 
+        
+        -- =========================
+        -- TARGET AGGREGATION
+        -- =========================
+        target_agg AS (
+            SELECT
+                REGION,
+                AREA,
+                DISTRIBUTOR,
+                "SALES OFFICE",
+                "GROUP",
+                SUM(TRY_CAST(Value AS DOUBLE)) AS Target
+            FROM 'data/parquet/target/*.parquet'
+            WHERE Value IS NOT NULL
+            GROUP BY
+                REGION,
+                AREA,
+                DISTRIBUTOR,
+                "SALES OFFICE",
+                "GROUP"
+        ),
+
+        
         -- =========================
         -- PIVOT FINAL
         -- =========================
@@ -934,6 +962,7 @@ def sales():
                 {','.join([f'm."{lbl}"' for lbl in month_labels])},
                 m."{avg12m_label}",
                 m."{avg3m_label}",
+
                 COALESCE(w.W1,0) AS "Historical Week: W1 {calendar.month_abbr[bulan_hist]}-{tahun_hist}",
                 COALESCE(w.W2,0) AS "Historical Week: W2 {calendar.month_abbr[bulan_hist]}-{tahun_hist}",
                 COALESCE(w.W3,0) AS "Historical Week: W3 {calendar.month_abbr[bulan_hist]}-{tahun_hist}",
@@ -941,15 +970,26 @@ def sales():
                 COALESCE(w.W5,0) AS "Historical Week: W5 {calendar.month_abbr[bulan_hist]}-{tahun_hist}",
 
                 COALESCE(w.W1,0)
-                    + COALESCE(w.W2,0)
-                    + COALESCE(w.W3,0)
-                    + COALESCE(w.W4,0)
-                    + COALESCE(w.W5,0)
-                        AS "Total Historical Week"
+                + COALESCE(w.W2,0)
+                + COALESCE(w.W3,0)
+                + COALESCE(w.W4,0)
+                + COALESCE(w.W5,0)
+                    AS "Total Historical Week",
+
+                -- ✅ TARGET
+                COALESCE(t.Target, 0) AS Target
 
             FROM sku_list s
             LEFT JOIN monthly_agg m ON s.SKU = m.SKU
-            LEFT JOIN weekly_agg w ON s.SKU = w.SKU
+            LEFT JOIN weekly_agg  w ON s.SKU = w.SKU
+
+            -- JOIN TARGET (DIMENSIONAL)
+            LEFT JOIN target_agg t
+                ON m.REGION = t.REGION
+            AND m.AREA = t.AREA
+            AND m.DISTRIBUTOR = t.DISTRIBUTOR
+            AND m."SALES OFFICE" = t."SALES OFFICE"
+            AND m."GROUP" = t."GROUP"
         ),
 
         -- =========================
@@ -972,7 +1012,8 @@ def sales():
                             COALESCE("Historical Week: W3 {calendar.month_abbr[bulan_hist]}-{tahun_hist}",0) +
                             COALESCE("Historical Week: W4 {calendar.month_abbr[bulan_hist]}-{tahun_hist}",0) +
                             COALESCE("Historical Week: W5 {calendar.month_abbr[bulan_hist]}-{tahun_hist}",0)
-                        ) AS "Total Historical Week"
+                        ) AS "Total Historical Week",
+                SUM(Target) AS Target
             FROM pivoted
         ),
 
