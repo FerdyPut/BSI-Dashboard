@@ -14,7 +14,7 @@ from streamlit import column_config
 # CONFIG
 # =========================
 st.set_page_config(
-    page_title="Excel / CSV → Parquet",
+    page_title="Dashboard Sales - BSI",
     layout="wide"
 )
 
