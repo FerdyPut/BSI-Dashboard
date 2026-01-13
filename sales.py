@@ -8,6 +8,8 @@ import tempfile
 import calendar
 from datetime import date, timedelta
 import datetime
+from streamlit import column_config
+
 # =========================
 # CONFIG
 # =========================
@@ -782,15 +784,15 @@ def sales():
         # =========================
         # FORMAT RUPIAH
         # =========================
-        def format_rupiah(x):
-            if pd.isna(x):
-                return "-"
-            return f"Rp {x:,.0f}".replace(",", ".")
+        money_cols = [c for c in df.columns if c != "SKU"]
 
-        df_display = df.copy()
-        for c in df_display.columns:
-            if c != "SKU":
-                df_display[c] = df_display[c].apply(format_rupiah)
+        col_config = {
+            c: column_config.NumberColumn(
+                c,
+                format="Rp %,d"
+            )
+            for c in money_cols
+        }
 
         # =========================
         # SHOW TABLE
@@ -839,16 +841,9 @@ def sales():
                     """, unsafe_allow_html=True
                 )
         st.badge(f"Periode Pivot: {month_labels[0]} → {month_labels[-1]} (Closed Month)", color='blue')
-        df_display = df_display.copy()
-        df_display["SKU"] = df_display["SKU"].astype(str)
-
-        df_display.loc[
-            df_display["SKU"] == "GRAND TOTAL",
-            "SKU"
-        ] = "🔹 GRAND TOTAL"
-
         st.dataframe(
-            df_display,
+            df,
+            column_config=col_config,
             use_container_width=True
         )
 
