@@ -796,7 +796,7 @@ def sales():
         col_config = {
             c: column_config.NumberColumn(
                 label=c,
-                format="Rp,.0f"
+                format=",.0f"
             )
             for c in money_cols
         }
