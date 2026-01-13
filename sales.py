@@ -943,7 +943,7 @@ def sales():
                 "GROUP",
                 SUM(TRY_CAST(Value AS DOUBLE)) AS Target
             FROM 'data/parquet/target/*.parquet'
-            WHERE CAST(BULAN AS INTEGER) = {bulan_hist}
+            WHERE CAST(MONTH AS INTEGER) = {bulan_hist}
             AND CAST(TAHUN AS INTEGER) = {tahun_hist}
             GROUP BY
                 REGION,
