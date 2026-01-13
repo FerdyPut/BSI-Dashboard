@@ -973,7 +973,6 @@ def sales():
 
             FROM sku_list s
             LEFT JOIN monthly_agg m ON s.SKU = m.SKU
-            LEFT JOIN monthly_agg_prev m_prev ON s.SKU = m_prev.SKU
             LEFT JOIN weekly_agg w ON s.SKU = w.SKU
             LEFT JOIN target_agg t ON s.SKU = t.SKU
         ),
