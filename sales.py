@@ -371,7 +371,7 @@ def sales():
         # =========================
         @st.cache_data
         def get_distinct(col):
-            src = ", ".join([f"'{p}'" for p in PARQUET_SRC_ALL])
+            src = ", ".join([f"'{p}'" for p in PARQUET_DIR])
 
             return (
                 con.execute(
