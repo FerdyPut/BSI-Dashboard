@@ -789,18 +789,6 @@ def sales():
             if c != "SKU":
                 df[c] = pd.to_numeric(df[c], errors="coerce")
 
-        from streamlit import column_config
-
-        money_cols = [c for c in df.columns if c != "SKU"]
-
-        col_config = {
-            c: column_config.NumberColumn(
-                label=c,
-                format=",.0f"
-            )
-            for c in money_cols
-        }
-
         # =========================
         # SHOW TABLE
         # =========================
