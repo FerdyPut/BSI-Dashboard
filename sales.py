@@ -586,7 +586,7 @@ def sales():
         # Label kolom AVG 12M
         start_label = f"{calendar.month_abbr[start_month]}-{start_year}"
         end_label = f"{calendar.month_abbr[end_month]}-{end_year}"
-        avg12m_label = f"Average Sales Per ({start_label} until {end_label})"
+        avg12m_label = f"Avg Sales Per ({start_label} until {end_label})"
 
         # Kolom AVG 12M, jika tidak ada data → 0
         month_exprs.append(f"""
@@ -602,7 +602,7 @@ def sales():
         """)
 
         # AVG 3 BULAN TERAKHIR → tambahkan setelah AVG_12M
-        avg3m_label = f"Average Sales Per ({month_labels[0]} until {month_labels[-1]})"
+        avg3m_label = f"Avg Sales Per ({month_labels[0]} until {month_labels[-1]})"
         month_exprs.append(f"""
             ({' + '.join([f'COALESCE("{lbl}",0)' for lbl in month_labels])}) / 3 AS "{avg3m_label}"
         """)
