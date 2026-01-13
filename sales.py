@@ -839,44 +839,32 @@ def sales():
 
 
         # =========================
-        # MAP BULAN (1-12) KE NAMA KOLOM
-        # =========================
-        month_name_map = {
-            1: "Jan", 2: "Feb", 3: "Mar", 4: "Apr",
-            5: "May", 6: "Jun", 7: "Jul", 8: "Aug",
-            9: "Sep", 10: "Oct", 11: "Nov", 12: "Dec"
-        }
-
-        growth_col = month_name_map[bulan_hist]  # Bulan hist saat ini
-        prev_year = tahun_hist - 1  # Tahun sebelumnya untuk growth
-
-        # =========================
-        # FINAL QUERY + GRAND TOTAL
+        # FINAL QUERY + GRAND TOTAL + GROWTH
         # =========================
         sql = f"""
         WITH base AS (
-                SELECT
-                    UPPER(TRIM(SKU)) AS SKU,
-                    REGION,
-                    AREA,
-                    DISTRIBUTOR,
-                    "SALES OFFICE",
-                    "GROUP",
-                    TRY_CAST(Value AS DOUBLE) AS Value,
-                    CAST(WEEK AS INTEGER)  AS ISO_WEEK,
-                    CAST(TAHUN AS INTEGER) AS TAHUN,
-                    DATE '1899-12-30' + CAST(TANGGAL AS INTEGER) AS DT
-                FROM "{parquet_path}"
-                {where_sql}
+            SELECT
+                UPPER(TRIM(SKU)) AS SKU,
+                REGION,
+                AREA,
+                DISTRIBUTOR,
+                "SALES OFFICE",
+                "GROUP",
+                TRY_CAST(Value AS DOUBLE) AS Value,
+                CAST(WEEK AS INTEGER)  AS ISO_WEEK,
+                CAST(TAHUN AS INTEGER) AS TAHUN,
+                CAST(MONTH AS INTEGER) AS MONTH,
+                DATE '1899-12-30' + CAST(TANGGAL AS INTEGER) AS DT
+            FROM "{parquet_path}"
+            {where_sql}
         ),
 
         -- =========================
-        -- LIST SKU (gabungan sales + target)
+        -- LIST SKU
         -- =========================
         sku_list AS (
             SELECT DISTINCT SKU FROM base
         ),
-
 
         -- =========================
         -- AGGREGATE BULANAN
@@ -884,45 +872,48 @@ def sales():
         monthly_agg AS (
             SELECT
                 SKU,
-                {','.join(month_exprs)},
+                {','.join([f'SUM(CASE WHEN MONTH = {i} THEN Value END) AS "M{i}"' for i in range(1,13)])},
                 AVG(
-                    CASE
-                        WHEN (TAHUN * 12 + EXTRACT(MONTH FROM DT))
-                        BETWEEN ({tahun_akhir} * 12 + {bulan_akhir} - 11)
-                            AND ({tahun_akhir} * 12 + {bulan_akhir})
-                        THEN Value
-                    END
+                    CASE WHEN (TAHUN * 12 + MONTH) BETWEEN ({tahun_akhir} * 12 + {bulan_akhir} - 11) AND ({tahun_akhir} * 12 + {bulan_akhir})
+                    THEN Value END
                 ) AS "{avg12m_label}",
                 AVG(
-                    CASE
-                        WHEN (TAHUN * 12 + EXTRACT(MONTH FROM DT))
-                        BETWEEN ({tahun_akhir} * 12 + {bulan_akhir} - 2)
-                            AND ({tahun_akhir} * 12 + {bulan_akhir})
-                        THEN Value
-                    END
+                    CASE WHEN (TAHUN * 12 + MONTH) BETWEEN ({tahun_akhir} * 12 + {bulan_akhir} - 2) AND ({tahun_akhir} * 12 + {bulan_akhir})
+                    THEN Value END
                 ) AS "{avg3m_label}"
             FROM base
             GROUP BY SKU
         ),
 
         -- =========================
-        -- AGGREGATE BULANAN (previous year)
+        -- SALES BULAN HIST
         -- =========================
-        monthly_agg_prev AS (
+        monthly_agg_curr AS (
             SELECT
                 SKU,
-                AVG(CASE WHEN EXTRACT(MONTH FROM DT) = {bulan_hist} THEN Value END) AS "{growth_col}"
+                SUM(Value) AS SalesCurrMonth
             FROM base
-            WHERE TAHUN = {prev_year}
+            WHERE MONTH = {bulan_hist} AND TAHUN = {tahun_hist}
             GROUP BY SKU
         ),
 
         -- =========================
-        -- BACA ISO WEEK TABLE DARI EXCEL
+        -- SALES BULAN HIST TAHUN SEBELUMNYA
+        -- =========================
+        monthly_agg_prev AS (
+            SELECT
+                SKU,
+                SUM(Value) AS SalesPrevMonth
+            FROM base
+            WHERE MONTH = {bulan_hist} AND TAHUN = {tahun_hist - 1}
+            GROUP BY SKU
+        ),
+
+        -- =========================
+        -- BACA ISO WEEK TABLE
         -- =========================
         month_week_map AS (
-            SELECT *
-            FROM 'iso_week_2025_2026.parquet'
+            SELECT * FROM 'iso_week_2025_2026.parquet'
         ),
 
         -- =========================
@@ -937,9 +928,9 @@ def sales():
             JOIN month_week_map m
                 ON b.ISO_WEEK = m.ISO_Week
                 AND b.TAHUN = m.Tahun_ISO
-            WHERE m.Month_ISO = {bulan_hist}   -- bulan ISO yang dipilih
-            AND m.Tahun_ISO = {tahun_hist}   -- tahun ISO yang dipilih
+            WHERE m.Month_ISO = {bulan_hist} AND m.Tahun_ISO = {tahun_hist}
         ),
+
         -- =========================
         -- AGGREGATE WEEKLY
         -- =========================
@@ -955,7 +946,6 @@ def sales():
             GROUP BY SKU
         ),
 
-        
         -- =========================
         -- TARGET BY SKU
         -- =========================
@@ -969,36 +959,30 @@ def sales():
             GROUP BY SKU
         ),
 
-
         -- =========================
         -- PIVOT FINAL + GROWTH PER SKU
         -- =========================
         pivoted AS (
             SELECT
                 s.SKU,
-                {','.join([f'm."{lbl}"' for lbl in month_labels])},
+                {','.join([f'm."M{i}"' for i in range(1,13)])},
                 m."{avg12m_label}",
                 m."{avg3m_label}",
-
-                COALESCE(w.W1,0) AS "Historical Week: W1 {calendar.month_abbr[bulan_hist]}-{tahun_hist}",
-                COALESCE(w.W2,0) AS "Historical Week: W2 {calendar.month_abbr[bulan_hist]}-{tahun_hist}",
-                COALESCE(w.W3,0) AS "Historical Week: W3 {calendar.month_abbr[bulan_hist]}-{tahun_hist}",
-                COALESCE(w.W4,0) AS "Historical Week: W4 {calendar.month_abbr[bulan_hist]}-{tahun_hist}",
-                COALESCE(w.W5,0) AS "Historical Week: W5 {calendar.month_abbr[bulan_hist]}-{tahun_hist}",
-
-                COALESCE(w.W1,0) + COALESCE(w.W2,0) + COALESCE(w.W3,0) + COALESCE(w.W4,0) + COALESCE(w.W5,0)
-                    AS "Total Historical Week",
-
+                COALESCE(w.W1,0) AS "Historical Week: W1 {bulan_hist}-{tahun_hist}",
+                COALESCE(w.W2,0) AS "Historical Week: W2 {bulan_hist}-{tahun_hist}",
+                COALESCE(w.W3,0) AS "Historical Week: W3 {bulan_hist}-{tahun_hist}",
+                COALESCE(w.W4,0) AS "Historical Week: W4 {bulan_hist}-{tahun_hist}",
+                COALESCE(w.W5,0) AS "Historical Week: W5 {bulan_hist}-{tahun_hist}",
+                COALESCE(w.W1,0) + COALESCE(w.W2,0) + COALESCE(w.W3,0) + COALESCE(w.W4,0) + COALESCE(w.W5,0) AS "Total Historical Week",
                 COALESCE(t.Target,0) AS Target,
-
-                -- GROWTH (%)
+                -- GROWTH PER SKU
                 CASE
-                    WHEN COALESCE(m_prev."{growth_col}",0) = 0 THEN NULL
-                    ELSE ((COALESCE(m."{growth_col}",0) - COALESCE(m_prev."{growth_col}",0)) / COALESCE(m_prev."{growth_col}",0)) * 100
+                    WHEN COALESCE(m_prev.SalesPrevMonth,0) = 0 THEN NULL
+                    ELSE ((COALESCE(m_curr.SalesCurrMonth,0) - COALESCE(m_prev.SalesPrevMonth,0)) / COALESCE(m_prev.SalesPrevMonth,0)) * 100
                 END AS "Growth (%)"
-
             FROM sku_list s
             LEFT JOIN monthly_agg m ON s.SKU = m.SKU
+            LEFT JOIN monthly_agg_curr m_curr ON s.SKU = m_curr.SKU
             LEFT JOIN monthly_agg_prev m_prev ON s.SKU = m_prev.SKU
             LEFT JOIN weekly_agg w ON s.SKU = w.SKU
             LEFT JOIN target_agg t ON s.SKU = t.SKU
@@ -1010,20 +994,19 @@ def sales():
         grand_total AS (
             SELECT
                 'GRAND TOTAL' AS SKU,
-                {','.join([f'SUM("{lbl}") AS "{lbl}"' for lbl in month_labels])},
+                {','.join([f'SUM("M{i}") AS "M{i}"' for i in range(1,13)])},
                 SUM("{avg12m_label}") AS "{avg12m_label}",
                 SUM("{avg3m_label}") AS "{avg3m_label}",
-                SUM("Historical Week: W1 {calendar.month_abbr[bulan_hist]}-{tahun_hist}") AS "W1 {calendar.month_abbr[bulan_hist]}-{tahun_hist}",
-                SUM("Historical Week: W2 {calendar.month_abbr[bulan_hist]}-{tahun_hist}") AS "W2 {calendar.month_abbr[bulan_hist]}-{tahun_hist}",
-                SUM("Historical Week: W3 {calendar.month_abbr[bulan_hist]}-{tahun_hist}") AS "W3 {calendar.month_abbr[bulan_hist]}-{tahun_hist}",
-                SUM("Historical Week: W4 {calendar.month_abbr[bulan_hist]}-{tahun_hist}") AS "W4 {calendar.month_abbr[bulan_hist]}-{tahun_hist}",
-                SUM("Historical Week: W5 {calendar.month_abbr[bulan_hist]}-{tahun_hist}") AS "W5 {calendar.month_abbr[bulan_hist]}-{tahun_hist}",
+                SUM("Historical Week: W1 {bulan_hist}-{tahun_hist}") AS "W1 {bulan_hist}-{tahun_hist}",
+                SUM("Historical Week: W2 {bulan_hist}-{tahun_hist}") AS "W2 {bulan_hist}-{tahun_hist}",
+                SUM("Historical Week: W3 {bulan_hist}-{tahun_hist}") AS "W3 {bulan_hist}-{tahun_hist}",
+                SUM("Historical Week: W4 {bulan_hist}-{tahun_hist}") AS "W4 {bulan_hist}-{tahun_hist}",
+                SUM("Historical Week: W5 {bulan_hist}-{tahun_hist}") AS "W5 {bulan_hist}-{tahun_hist}",
                 SUM("Total Historical Week") AS "Total Historical Week",
                 SUM(Target) AS Target,
                 AVG("Growth (%)") AS "Growth (%)"
             FROM pivoted
         ),
-
 
         final AS (
             SELECT * FROM pivoted
@@ -1039,6 +1022,7 @@ def sales():
         """
 
         df = con.execute(sql).df()
+
 
         # pastikan numeric
         for c in df.columns:
