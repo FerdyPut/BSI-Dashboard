@@ -911,7 +911,7 @@ def sales():
         monthly_agg_prev AS (
             SELECT
                 SKU,
-                {','.join([f'SUM("{lbl}") AS "{lbl}"' for lbl in month_labels])}
+                AVG(CASE WHEN EXTRACT(MONTH FROM DT) = {bulan_hist} THEN Value END) AS "{growth_col}"
             FROM base
             WHERE TAHUN = {prev_year}
             GROUP BY SKU
