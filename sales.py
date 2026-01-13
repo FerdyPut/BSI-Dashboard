@@ -322,7 +322,7 @@ def sales():
         # =========================
         cleaning_on = st.checkbox(
             "🧹 Cleaning Data (TRIM + UPPER untuk semua kolom text)",
-            value=True
+            value=True, key='checktarget'
         )
 
         # =========================
