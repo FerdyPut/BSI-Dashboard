@@ -898,7 +898,7 @@ def sales():
         -- =========================
         monthly_agg_prev AS (
             SELECT
-                SKU,
+                UPPER(TRIM(SKU)) AS SKU,
                 {','.join(month_exprs)}
             FROM base
             WHERE TAHUN = {tahun_hist}-1
@@ -963,7 +963,7 @@ def sales():
         -- =========================
         pivoted AS (
             SELECT
-                s.SKU,
+                UPPER(TRIM(SKU)) AS s.SKU,
                 {','.join([f'm."{lbl}"' for lbl in month_labels])},
                 m."{avg12m_label}",
                 m."{avg3m_label}",
