@@ -375,6 +375,23 @@ def sales():
                 .tolist()
             )
 
+
+        @st.cache_data
+        def get_distinct_target(col):
+            return (
+                con.execute(
+                    f"""
+                    SELECT DISTINCT
+                        TRIM(UPPER("{col}")) AS val
+                    FROM '{PARQUET_DIR_TARGET}/*.parquet'
+                    WHERE "{col}" IS NOT NULL
+                    """
+                )
+                .df()["val"]
+                .dropna()
+                .sort_values()
+                .tolist()
+            )
         # =========================
         # FILTERS
         # =========================
