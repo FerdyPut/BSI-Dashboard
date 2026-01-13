@@ -936,26 +936,23 @@ def sales():
         -- =========================
         target_agg AS (
             SELECT
-                REGION,
-                AREA,
-                DISTRIBUTOR,
-                "SALES OFFICE",
-                "GROUP",
-                SUM(TRY_CAST(Value AS DOUBLE)) AS Target
-            FROM 'data/parquet/target/*.parquet'
-            WHERE CAST(MONTH AS INTEGER) = {bulan_hist}
-            AND CAST(TAHUN AS INTEGER) = {tahun_hist}
-            GROUP BY
-                REGION,
-                AREA,
-                DISTRIBUTOR,
-                "SALES OFFICE",
-                "GROUP"
+                SUM(TRY_CAST(t.Value AS DOUBLE)) AS Target
+            FROM 'data/parquet/target/*.parquet' t
+            WHERE
+                CAST(t.MONTH AS INTEGER) = {bulan_hist}
+                AND CAST(t.TAHUN AS INTEGER) = {tahun_hist}
+                AND EXISTS (
+                    SELECT 1
+                    FROM base b
+                    WHERE
+                        b.REGION = t.REGION
+                        AND b.AREA = t.AREA
+                        AND b.DISTRIBUTOR = t.DISTRIBUTOR
+                        AND b."SALES OFFICE" = t."SALES OFFICE"
+                        AND b."GROUP" = t."GROUP"
+                )
         ),
         
-        -- =========================
-        -- PIVOT FINAL
-        -- =========================
         pivoted AS (
             SELECT
                 s.SKU,
@@ -976,21 +973,13 @@ def sales():
                 + COALESCE(w.W5,0)
                     AS "Total Historical Week",
 
-                -- ✅ TARGET
-                COALESCE(t.Target, 0) AS Target
+                -- TARGET GLOBAL (MATCH FILTER)
+                (SELECT Target FROM target_agg) AS Target
 
             FROM sku_list s
             LEFT JOIN monthly_agg m ON s.SKU = m.SKU
             LEFT JOIN weekly_agg  w ON s.SKU = w.SKU
-
-            -- JOIN TARGET (DIMENSIONAL)
-            LEFT JOIN target_agg t
-                ON m.REGION = t.REGION
-            AND m.AREA = t.AREA
-            AND m.DISTRIBUTOR = t.DISTRIBUTOR
-            AND m."SALES OFFICE" = t."SALES OFFICE"
-            AND m."GROUP" = t."GROUP"
-        ),
+        )
 
         -- =========================
         -- GRAND TOTAL
