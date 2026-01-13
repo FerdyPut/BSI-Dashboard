@@ -985,9 +985,9 @@ def sales():
 
                 -- GROWTH (%)
                 CASE
-                    WHEN COALESCE(m_prev."{month_labels[-1]}",0) = 0 THEN NULL
-                    ELSE ((COALESCE(m."{month_labels[-1]}",0) - COALESCE(m_prev."{month_labels[-1]}",0))
-                        / COALESCE(m_prev."{month_labels[-1]}",0)) * 100
+                    WHEN COALESCE(m_prev."{month_labels[bulan_hist-1]}", 0) = 0 THEN NULL
+                    ELSE ((COALESCE(m."{month_labels[bulan_hist-1]}",0) - COALESCE(m_prev."{month_labels[bulan_hist-1]}",0))
+                        / COALESCE(m_prev."{month_labels[bulan_hist-1]}",0)) * 100
                 END AS "Growth (%)"
 
             FROM sku_list s
