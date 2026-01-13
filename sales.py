@@ -945,16 +945,16 @@ def sales():
 
         
         -- =========================
-        -- TARGET AGGREGATION (PER BULAN)
+        -- TARGET BY SKU
         -- =========================
         target_agg AS (
             SELECT
-                t.SKU,
-                COALESCE(SUM(TRY_CAST(t.Value AS DOUBLE)), 0) AS Target
-            FROM 'data/parquet/target/*.parquet' t
-            WHERE CAST(t.TAHUN AS INTEGER) = {tahun_hist}
-            AND CAST(t.MONTH AS INTEGER) = {bulan_hist}
-            GROUP BY t.SKU
+                UPPER(TRIM(SKU)) AS SKU,
+                COALESCE(SUM(TRY_CAST(Value AS DOUBLE)), 0) AS Target
+            FROM 'data/parquet/target/*.parquet'
+            WHERE CAST(TAHUN AS INTEGER) = {tahun_hist}
+            AND CAST(BULAN AS INTEGER) = {bulan_hist}
+            GROUP BY SKU
         ),
 
 
@@ -1015,8 +1015,8 @@ def sales():
                 SUM(Target) AS Target,
                 NULL AS "Growth (%)"
             FROM pivoted
-
         ),
+
 
         final AS (
             SELECT * FROM pivoted
