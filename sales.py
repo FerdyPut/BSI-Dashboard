@@ -839,11 +839,16 @@ def sales():
                     """, unsafe_allow_html=True
                 )
         st.badge(f"Periode Pivot: {month_labels[0]} → {month_labels[-1]} (Closed Month)", color='blue')
+        df_display = df_display.copy()
+        df_display["SKU"] = df_display["SKU"].astype(str)
+
+        df_display.loc[
+            df_display["SKU"] == "GRAND TOTAL",
+            "SKU"
+        ] = "🔹 GRAND TOTAL"
+
         st.dataframe(
-            df_display.style.apply(
-                lambda r: ["font-weight: bold"]*len(r) if r["SKU"]=="GRAND TOTAL" else [""]*len(r),
-                axis=1
-            ),
+            df_display,
             use_container_width=True
         )
 
