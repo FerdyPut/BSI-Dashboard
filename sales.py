@@ -1005,7 +1005,7 @@ def sales():
                 -- =========================
                 CASE 
                     WHEN g.sales_prev = 0 THEN NULL
-                    ELSE ROUND((g.sales_curr - g.sales_prev) * 100.0 / g.sales_prev, 2)
+                    ELSE ROUND((g.sales_curr - g.sales_prev)/ g.sales_prev, 2)
                 END AS "Growth (%)"
 
             FROM sku_list s
