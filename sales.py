@@ -956,8 +956,8 @@ def sales():
         sales_for_growth AS (
             SELECT
                 SKU,
-                SUM(CASE WHEN EXTRACT(MONTH FROM DT) = {bulan_hist} AND EXTRACT(YEAR FROM DT) = {tahun_hist} THEN Sales ELSE 0 END) AS sales_curr,
-                SUM(CASE WHEN EXTRACT(MONTH FROM DT) = {bulan_hist - 1} AND EXTRACT(YEAR FROM DT) = {tahun_hist - 1} THEN Sales ELSE 0 END) AS sales_prev
+                SUM(CASE WHEN EXTRACT(MONTH FROM DT) = {bulan_hist} AND EXTRACT(TAHUN FROM DT) = {tahun_hist} THEN Sales ELSE 0 END) AS sales_curr,
+                SUM(CASE WHEN EXTRACT(MONTH FROM DT) = {bulan_hist - 1} AND EXTRACT(TAHUN FROM DT) = {tahun_hist - 1} THEN Sales ELSE 0 END) AS sales_prev
             FROM 'data/parquet/target/*.parquet'
             GROUP BY SKU
         ),        
