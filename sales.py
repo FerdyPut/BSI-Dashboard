@@ -354,17 +354,31 @@ def sales():
 
         con = duckdb.connect(":memory:")
 
+        PARQUET_SRC_ALL = [
+                "data/parquet/sales/*.parquet",
+                "data/parquet/target/*.parquet"
+            ]
+        
+        # Sales
+
+        PARQUET_DIR = "data/parquet/sales/*.parquet"
+
+        # Target 
+        PARQUET_DIR_2 = "data/parquet/target/*.parquet"
+
         # =========================
         # HELPER: distinct values
         # =========================
         @st.cache_data
         def get_distinct(col):
+            src = ", ".join([f"'{p}'" for p in PARQUET_SRC_ALL])
+
             return (
                 con.execute(
                     f"""
                     SELECT DISTINCT
                         TRIM(UPPER("{col}")) AS val
-                    FROM '{PARQUET_DIR}/*.parquet'
+                    FROM parquet_scan({src})
                     WHERE "{col}" IS NOT NULL
                     """
                 )
@@ -373,6 +387,7 @@ def sales():
                 .sort_values()
                 .tolist()
             )
+
 
         # =========================
         # FILTERS
