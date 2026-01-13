@@ -366,21 +366,24 @@ def sales():
         # =========================
         @st.cache_data
         def get_distinct(col):
+            query = f"""
+                SELECT DISTINCT TRIM(UPPER(TRY("{col}"))) AS val
+                FROM parquet_scan('{PARQUET_DIR}')
+
+                UNION
+
+                SELECT DISTINCT TRIM(UPPER(TRY("{col}"))) AS val
+                FROM parquet_scan('{PARQUET_DIR_2}')
+            """
+
             return (
-                con.execute(
-                    f"""
-                    SELECT DISTINCT
-                        TRIM(UPPER("{col}")) AS val
-                    FROM parquet_scan('{PARQUET_DIR}')
-                    WHERE column_exists('{col}')
-                    AND "{col}" IS NOT NULL
-                    """
-                )
+                con.execute(query)
                 .df()["val"]
                 .dropna()
                 .sort_values()
                 .tolist()
             )
+
 
         # =========================
         # FILTERS
