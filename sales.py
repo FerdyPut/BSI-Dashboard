@@ -838,9 +838,13 @@ def sales():
         df_iso_week.to_parquet("iso_week_2025_2026.parquet", index=False)
 
 
-        # =========================
-        # MAP BULAN (1-12) KE NAMA KOLOM
-        # =========================
+        # Hitung dulu bulan_prev & tahun_prev
+        if bulan_hist == 1:
+            bulan_hist_prev = 12
+            tahun_prev = tahun_hist - 1
+        else:
+            bulan_hist_prev = bulan_hist - 1
+            tahun_prev = tahun_hist
 
         # =========================
         # FINAL QUERY + GRAND TOTAL
@@ -966,8 +970,8 @@ def sales():
                 ) AS sales_curr,
                 SUM(
                     CASE 
-                        WHEN CAST("MONTH" AS INTEGER) = {bulan_hist-1} 
-                        AND CAST("TAHUN" AS INTEGER) = {tahun_hist-1} 
+                        WHEN CAST("MONTH" AS INTEGER) = {bulan_hist_prev} 
+                        AND CAST("TAHUN" AS INTEGER) = {tahun_prev} 
                         THEN CAST("Value" AS DOUBLE)
                         ELSE 0
                     END
