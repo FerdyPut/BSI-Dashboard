@@ -994,7 +994,7 @@ def sales():
                         CASE
                             WHEN CAST(MONTH AS INTEGER) = {bulan_next}
                             AND CAST(TAHUN AS INTEGER) = {tahun_next}
-                            THEN CAST("Value" AS DOUBLE)
+                            THEN CAST(VALUE AS DOUBLE)
                             ELSE 0
                         END
                     ) AS sales_next
