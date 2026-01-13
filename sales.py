@@ -402,9 +402,9 @@ def sales():
         # =========================
         # TAHUN & BULAN CLOSED
         # =========================
-        parquet_path = str(PARQUET_DIR / "*.parquet")
+        parquet_path = str(PARQUET_DIR_SALES / "*.parquet")
         tahun_options = sorted(
-            con.execute(f"SELECT DISTINCT CAST(TAHUN AS INTEGER) AS TAHUN FROM '{PARQUET_DIR}/*.parquet'").df()["TAHUN"]
+            con.execute(f"SELECT DISTINCT CAST(TAHUN AS INTEGER) AS TAHUN FROM '{PARQUET_DIR_SALES}/*.parquet'").df()["TAHUN"]
         )
 
         st.markdown(
