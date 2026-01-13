@@ -169,7 +169,7 @@ def sales():
     with tab2:
         st.subheader("📊 Dataset Info")
 
-        parquet_files = list(PARQUET_DIR.glob("*.parquet"))
+        parquet_files = list(PARQUET_DIR_SALES.glob("*.parquet"))
         if not parquet_files:
             st.warning("⚠️ Dataset masih kosong")
             st.stop()
@@ -188,7 +188,7 @@ def sales():
         # READ SCHEMA
         # =========================
         schema_df = con.execute(
-            f"DESCRIBE SELECT * FROM '{PARQUET_DIR}/*.parquet'"
+            f"DESCRIBE SELECT * FROM '{PARQUET_DIR_SALES}/*.parquet'"
         ).df()
 
         all_cols = schema_df["column_name"].tolist()
@@ -220,7 +220,7 @@ def sales():
         total_rows = con.execute(
             f"""
             SELECT COUNT(*)
-            FROM '{PARQUET_DIR}/*.parquet'
+            FROM '{PARQUET_DIR_SALES}/*.parquet'
             """
         ).fetchone()[0]
 
@@ -229,7 +229,7 @@ def sales():
             SELECT SUM(TRY_CAST(Value AS DOUBLE))
             FROM (
                 SELECT {select_sql}
-                FROM '{PARQUET_DIR}/*.parquet'
+                FROM '{PARQUET_DIR_SALES}/*.parquet'
             )
             """
         ).fetchone()[0]
@@ -247,7 +247,7 @@ def sales():
         df_preview = con.execute(
             f"""
             SELECT {select_sql}
-            FROM '{PARQUET_DIR}/*.parquet'
+            FROM '{PARQUET_DIR_SALES}/*.parquet'
             LIMIT 1000
             """
         ).df()
@@ -279,7 +279,7 @@ def sales():
                     con.execute(f"""
                         COPY (
                             SELECT {select_sql}
-                            FROM '{PARQUET_DIR}/*.parquet'
+                            FROM '{PARQUET_DIR_SALES}/*.parquet'
                         )
                         TO '{out}'
                         (FORMAT PARQUET)
@@ -289,7 +289,7 @@ def sales():
                     con.execute(f"""
                         COPY (
                             SELECT {select_sql}
-                            FROM '{PARQUET_DIR}/*.parquet'
+                            FROM '{PARQUET_DIR_SALES}/*.parquet'
                         )
                         TO '{out}'
                         (HEADER, DELIMITER ',')
