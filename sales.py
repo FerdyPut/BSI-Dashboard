@@ -160,14 +160,19 @@ def sales():
         ]["column_name"].tolist()
 
         # =========================
-        # BUILD SELECT SQL
+        # BUILD SELECT SQL (SAFE FOR SPACES)
         # =========================
         select_exprs = []
+
         for col in all_cols:
+            col_quoted = f'"{col}"'
+
             if cleaning_on and col in string_cols:
-                select_exprs.append(f"TRIM(UPPER({col})) AS {col}")
+                select_exprs.append(
+                    f"TRIM(UPPER({col_quoted})) AS {col_quoted}"
+                )
             else:
-                select_exprs.append(col)
+                select_exprs.append(col_quoted)
 
         select_sql = ", ".join(select_exprs)
 
