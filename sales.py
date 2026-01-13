@@ -371,8 +371,9 @@ def sales():
                     f"""
                     SELECT DISTINCT
                         TRIM(UPPER("{col}")) AS val
-                    FROM '{PARQUET_DIR}/*.parquet'
-                    WHERE "{col}" IS NOT NULL
+                    FROM parquet_scan('{PARQUET_DIR}')
+                    WHERE column_exists('{col}')
+                    AND "{col}" IS NOT NULL
                     """
                 )
                 .df()["val"]
