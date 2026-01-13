@@ -126,7 +126,7 @@ def sales():
             st.success("✅ Dataset berhasil di-reset")
 
     # ==================================================
-    # TAB 2 — VIEW & DOWNLOAD
+    # TAB 2 — VIEW & DOWNLOAD (WITH CLEANING)
     # ==================================================
     with tab2:
         st.subheader("📊 Dataset Info")
@@ -139,16 +139,55 @@ def sales():
         con = duckdb.connect(":memory:")
 
         # =========================
+        # CLEANING OPTION
+        # =========================
+        cleaning_on = st.checkbox(
+            "🧹 Cleaning Data (TRIM + UPPER untuk semua kolom text)",
+            value=True
+        )
+
+        # =========================
+        # READ SCHEMA
+        # =========================
+        schema_df = con.execute(
+            f"DESCRIBE SELECT * FROM '{PARQUET_DIR}/*.parquet'"
+        ).df()
+
+        all_cols = schema_df["column_name"].tolist()
+
+        string_cols = schema_df[
+            schema_df["column_type"].str.contains("VARCHAR|TEXT", case=False)
+        ]["column_name"].tolist()
+
+        # =========================
+        # BUILD SELECT SQL
+        # =========================
+        select_exprs = []
+        for col in all_cols:
+            if cleaning_on and col in string_cols:
+                select_exprs.append(f"TRIM(UPPER({col})) AS {col}")
+            else:
+                select_exprs.append(col)
+
+        select_sql = ", ".join(select_exprs)
+
+        # =========================
         # METRICS
         # =========================
         total_rows = con.execute(
-            f"SELECT COUNT(*) FROM '{PARQUET_DIR}/*.parquet'"
+            f"""
+            SELECT COUNT(*)
+            FROM '{PARQUET_DIR}/*.parquet'
+            """
         ).fetchone()[0]
 
         total_value = con.execute(
             f"""
             SELECT SUM(TRY_CAST(Value AS DOUBLE))
-            FROM '{PARQUET_DIR}/*.parquet'
+            FROM (
+                SELECT {select_sql}
+                FROM '{PARQUET_DIR}/*.parquet'
+            )
             """
         ).fetchone()[0]
 
@@ -160,10 +199,14 @@ def sales():
         # PREVIEW
         # =========================
         st.divider()
-        st.caption("Preview 1.000 baris pertama")
+        st.caption("Preview 1.000 baris pertama (setelah cleaning)")
 
         df_preview = con.execute(
-            f"SELECT * FROM '{PARQUET_DIR}/*.parquet' LIMIT 1000"
+            f"""
+            SELECT {select_sql}
+            FROM '{PARQUET_DIR}/*.parquet'
+            LIMIT 1000
+            """
         ).df()
 
         st.dataframe(df_preview, use_container_width=True)
@@ -172,11 +215,7 @@ def sales():
         # SCHEMA
         # =========================
         st.caption("Schema Dataset")
-        st.code(
-            con.execute(
-                f"DESCRIBE SELECT * FROM '{PARQUET_DIR}/*.parquet'"
-            ).df()
-        )
+        st.code(schema_df)
 
         # =========================
         # DOWNLOAD
@@ -196,7 +235,8 @@ def sales():
                     out = tmp.name + ".parquet"
                     con.execute(f"""
                         COPY (
-                            SELECT * FROM '{PARQUET_DIR}/*.parquet'
+                            SELECT {select_sql}
+                            FROM '{PARQUET_DIR}/*.parquet'
                         )
                         TO '{out}'
                         (FORMAT PARQUET)
@@ -205,7 +245,8 @@ def sales():
                     out = tmp.name + ".csv"
                     con.execute(f"""
                         COPY (
-                            SELECT * FROM '{PARQUET_DIR}/*.parquet'
+                            SELECT {select_sql}
+                            FROM '{PARQUET_DIR}/*.parquet'
                         )
                         TO '{out}'
                         (HEADER, DELIMITER ',')
@@ -218,6 +259,7 @@ def sales():
                         file_name=Path(out).name,
                         mime="application/octet-stream"
                     )
+
     # ==================================================
     # TAB 3 — ANALYTICS
     # ==================================================
