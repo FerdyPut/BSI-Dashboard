@@ -986,6 +986,23 @@ def sales():
             GROUP BY SKU
         ),
 
+        -- =========================
+        -- TARGET BULAN BERIKUTNYA
+        -- =========================
+        target_next AS (
+            SELECT
+                SKU,
+                SUM(
+                    CASE
+                            WHEN CAST(MONTH AS INTEGER) = {bulan_next}
+                            AND CAST(TAHUN AS INTEGER) = {tahun_next}
+                            THEN CAST(VALUE AS DOUBLE)
+                        ELSE 0
+                    END
+                ) AS Target
+            FROM 'data/parquet/target/*.parquet'
+            GROUP BY SKU
+        )
         
         sales_next AS (
                 SELECT
