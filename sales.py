@@ -1002,7 +1002,7 @@ def sales():
                 ) AS Target
             FROM 'data/parquet/target/*.parquet'
             GROUP BY SKU
-        )
+        ),
         
         sales_next AS (
                 SELECT
