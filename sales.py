@@ -346,7 +346,6 @@ def sales():
                 filters = {
                     "REGION": st.multiselect("REGION", get_distinct("REGION")),
                     "AREA": st.multiselect("AREA", get_distinct("AREA")),
-                    "DISTRIBUTOR": st.multiselect("DISTRIBUTOR", get_distinct("DISTRIBUTOR")),
                 }
 
             with col2:
