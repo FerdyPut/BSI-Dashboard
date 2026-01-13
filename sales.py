@@ -719,11 +719,11 @@ def sales():
         weekly_agg AS (
             SELECT
                 SKU,
-                AVG(CASE WHEN WEEK_IN_MONTH = 1 THEN Value END) AS W1,
-                AVG(CASE WHEN WEEK_IN_MONTH = 2 THEN Value END) AS W2,
-                AVG(CASE WHEN WEEK_IN_MONTH = 3 THEN Value END) AS W3,
-                AVG(CASE WHEN WEEK_IN_MONTH = 4 THEN Value END) AS W4,
-                AVG(CASE WHEN WEEK_IN_MONTH = 5 THEN Value END) AS W5
+                SUM(CASE WHEN WEEK_IN_MONTH = 1 THEN Value END) AS W1,
+                SUM(CASE WHEN WEEK_IN_MONTH = 2 THEN Value END) AS W2,
+                SUM(CASE WHEN WEEK_IN_MONTH = 3 THEN Value END) AS W3,
+                SUM(CASE WHEN WEEK_IN_MONTH = 4 THEN Value END) AS W4,
+                SUM(CASE WHEN WEEK_IN_MONTH = 5 THEN Value END) AS W5
             FROM week_map
             GROUP BY SKU
         ),
