@@ -412,7 +412,7 @@ def sales():
             ["Parquet (recommended)", "CSV"]
         )
 
-        if st.button("⬇️ Generate Download"):
+        if st.button("⬇️ Generate Download", key='targetdownload'):
             with tempfile.NamedTemporaryFile(delete=False) as tmp:
 
                 if fmt == "Parquet (recommended)":
