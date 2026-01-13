@@ -788,12 +788,11 @@ def sales():
 
         col_config = {
             c: column_config.NumberColumn(
-                c,
+                label=c,
                 format="Rp,.0f"
             )
             for c in money_cols
         }
-
         # =========================
         # SHOW TABLE
         # =========================
