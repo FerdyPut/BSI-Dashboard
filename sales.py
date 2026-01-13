@@ -1045,15 +1045,15 @@ def sales():
                 CASE 
                     WHEN g.sales_prev = 0 THEN NULL
                     ELSE ROUND((g.sales_curr - g.sales_prev) / g.sales_prev * 100, 2)
-                END AS "Growth (%)",
+                END AS "Growth (%)"
 
-                COALESCE(s_next.sales_next, 0) / NULLIF(t_next.Target, 0) * 100 AS "Achieved (%)"
 
             FROM sku_list s
             LEFT JOIN monthly_agg m ON s.SKU = m.SKU
             LEFT JOIN weekly_agg w ON s.SKU = w.SKU
             LEFT JOIN target_agg t ON s.SKU = t.SKU
             LEFT JOIN sales_for_growth g ON s.SKU = g.SKU
+
         ),
 
         
