@@ -784,12 +784,14 @@ def sales():
         # =========================
         # FORMAT RUPIAH
         # =========================
-        df_display = df.copy()
-        for c in df_display.columns:
+        # pastikan numeric
+        for c in df.columns:
             if c != "SKU":
-                df_display[c] = pd.to_numeric(df_display[c], errors="coerce")
+                df[c] = pd.to_numeric(df[c], errors="coerce")
 
-        money_cols = [c for c in df_display.columns if c != "SKU"]
+        from streamlit import column_config
+
+        money_cols = [c for c in df.columns if c != "SKU"]
 
         col_config = {
             c: column_config.NumberColumn(
