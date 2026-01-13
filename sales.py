@@ -345,18 +345,18 @@ def sales():
             with col1:
                 filters = {
                     "REGION": st.multiselect("REGION", get_distinct("REGION")),
-                    "AREA": st.multiselect("AREA", get_distinct("AREA")),
+                    "SALES OFFICE": st.multiselect("SALES OFFICE", get_distinct("SALES OFFICE")),
                 }
 
             with col2:
                 filters.update({
-                    "DISTRIBUTOR": st.multiselect("DISTRIBUTOR", get_distinct("DISTRIBUTOR")),
-                    "SALES OFFICE": st.multiselect("SALES OFFICE", get_distinct("SALES OFFICE")),
+                    "AREA": st.multiselect("AREA", get_distinct("AREA")),
+                    "GROUP": st.multiselect("GROUP", get_distinct("GROUP")),
                 })
 
             with col3:
                 filters.update({
-                    "GROUP": st.multiselect("GROUP", get_distinct("GROUP")),
+                    "DISTRIBUTOR": st.multiselect("DISTRIBUTOR", get_distinct("DISTRIBUTOR")),
                     "TIPE": st.multiselect("TIPE", get_distinct("TIPE")),
                 })
 
