@@ -862,9 +862,7 @@ def sales():
         -- LIST SKU (gabungan sales + target)
         -- =========================
         sku_list AS (
-            SELECT SKU FROM base
-            UNION
-            SELECT DISTINCT SKU FROM 'data/parquet/target/*.parquet'
+            SELECT DISTINCT SKU FROM base
         ),
 
 
