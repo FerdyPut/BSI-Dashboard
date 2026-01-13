@@ -784,6 +784,11 @@ def sales():
         # =========================
         # FORMAT RUPIAH
         # =========================
+
+        for c in df.columns:
+            if c != "SKU":
+                df[c] = pd.to_numeric(df[c], errors="coerce")
+
         money_cols = [c for c in df.columns if c != "SKU"]
 
         col_config = {
