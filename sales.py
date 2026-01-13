@@ -966,8 +966,8 @@ def sales():
                 ) AS sales_curr,
                 SUM(
                     CASE 
-                        WHEN CAST(MONTH AS INTEGER) = {bulan_hist_prev} 
-                        AND CAST(TAHUN AS INTEGER) = {tahun_prev} 
+                        WHEN CAST(MONTH AS INTEGER) = {bulan_hist-1} 
+                        AND CAST(TAHUN AS INTEGER) = {tahun_hist-1} 
                         THEN Sales 
                         ELSE 0 
                     END
