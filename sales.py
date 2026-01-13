@@ -303,6 +303,147 @@ def sales():
                         mime="application/octet-stream"
                     )
 
+
+    # ==================================================
+    # TAB 03 — VIEW & DOWNLOAD (WITH CLEANING)
+    # ==================================================
+    with tab03:
+        st.subheader("📊 Dataset Info")
+
+        parquet_files = list(PARQUET_DIR_TARGET.glob("*.parquet"))
+        if not parquet_files:
+            st.warning("⚠️ Dataset masih kosong")
+            st.stop()
+
+        con = duckdb.connect(":memory:")
+
+        # =========================
+        # CLEANING OPTION
+        # =========================
+        cleaning_on = st.checkbox(
+            "🧹 Cleaning Data (TRIM + UPPER untuk semua kolom text)",
+            value=True
+        )
+
+        # =========================
+        # READ SCHEMA
+        # =========================
+        schema_df = con.execute(
+            f"DESCRIBE SELECT * FROM '{PARQUET_DIR_TARGET}/*.parquet'"
+        ).df()
+
+        all_cols = schema_df["column_name"].tolist()
+
+        string_cols = schema_df[
+            schema_df["column_type"].str.contains("VARCHAR|TEXT", case=False)
+        ]["column_name"].tolist()
+
+        # =========================
+        # BUILD SELECT SQL (SAFE FOR SPACES)
+        # =========================
+        select_exprs = []
+
+        for col in all_cols:
+            col_quoted = f'"{col}"'
+
+            if cleaning_on and col in string_cols:
+                select_exprs.append(
+                    f"TRIM(UPPER({col_quoted})) AS {col_quoted}"
+                )
+            else:
+                select_exprs.append(col_quoted)
+
+        select_sql = ", ".join(select_exprs)
+
+        # =========================
+        # METRICS
+        # =========================
+        total_rows = con.execute(
+            f"""
+            SELECT COUNT(*)
+            FROM '{PARQUET_DIR_TARGET}/*.parquet'
+            """
+        ).fetchone()[0]
+
+        total_value = con.execute(
+            f"""
+            SELECT SUM(TRY_CAST(Value AS DOUBLE))
+            FROM (
+                SELECT {select_sql}
+                FROM '{PARQUET_DIR_TARGET}/*.parquet'
+            )
+            """
+        ).fetchone()[0]
+
+        col1, col2 = st.columns(2)
+        col1.metric("📊 Total Rows", f"{total_rows:,}")
+        col2.metric("💰 Total Value Target", f"{total_value:,.2f}" if total_value else "—")
+
+        # =========================
+        # PREVIEW
+        # =========================
+        st.divider()
+        st.caption("Preview 1.000 baris pertama (setelah cleaning)")
+
+        df_preview = con.execute(
+            f"""
+            SELECT {select_sql}
+            FROM '{PARQUET_DIR_TARGET}/*.parquet'
+            LIMIT 1000
+            """
+        ).df()
+
+        st.dataframe(df_preview, use_container_width=True)
+
+        # =========================
+        # SCHEMA
+        # =========================
+        st.caption("Schema Dataset")
+        st.code(schema_df)
+
+        # =========================
+        # DOWNLOAD
+        # =========================
+        st.divider()
+        st.subheader("⬇️ Download All Data")
+
+        fmt = st.selectbox(
+            "Format",
+            ["Parquet (recommended)", "CSV"]
+        )
+
+        if st.button("⬇️ Generate Download"):
+            with tempfile.NamedTemporaryFile(delete=False) as tmp:
+
+                if fmt == "Parquet (recommended)":
+                    out = tmp.name + ".parquet"
+                    con.execute(f"""
+                        COPY (
+                            SELECT {select_sql}
+                            FROM '{PARQUET_DIR_TARGET}/*.parquet'
+                        )
+                        TO '{out}'
+                        (FORMAT PARQUET)
+                    """)
+                else:
+                    out = tmp.name + ".csv"
+                    con.execute(f"""
+                        COPY (
+                            SELECT {select_sql}
+                            FROM '{PARQUET_DIR_TARGET}/*.parquet'
+                        )
+                        TO '{out}'
+                        (HEADER, DELIMITER ',')
+                    """)
+
+                with open(out, "rb") as f:
+                    st.download_button(
+                        "⬇️ Download File",
+                        data=f,
+                        file_name=Path(out).name,
+                        mime="application/octet-stream"
+                    )
+
     # ==================================================
     # TAB 3 — ANALYTICS
     # ==================================================
