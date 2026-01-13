@@ -975,7 +975,7 @@ def sales():
                         ELSE 0
                     END
                 ) AS sales_prev
-            FROM 'data/parquet/target/*.parquet'
+            FROM 'data/parquet/sales/*.parquet'
             GROUP BY SKU
         ),
 
