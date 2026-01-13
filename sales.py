@@ -915,7 +915,7 @@ def sales():
             FROM base
             WHERE TAHUN = {prev_year}
             GROUP BY SKU
-        )
+        ),
 
         -- =========================
         -- BACA ISO WEEK TABLE DARI EXCEL
