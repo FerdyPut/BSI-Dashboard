@@ -838,7 +838,6 @@ def sales():
         st.badge(f"Periode Pivot: {month_labels[0]} → {month_labels[-1]} (Closed Month)", color='blue')
         st.dataframe(
             df,
-            column_config=col_config,
             use_container_width=True
         )
 
