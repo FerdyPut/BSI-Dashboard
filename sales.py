@@ -18,29 +18,58 @@ st.set_page_config(
     layout="wide"
 )
 
-PARQUET_DIR = Path("data/parquet/sales")
-PARQUET_DIR.mkdir(parents=True, exist_ok=True)
-
 # =========================
 # APP
 # =========================
 def sales():
 
-    tab1, tab2, tab3 = st.tabs(["📥 Import Data", "📊 View & Download", "Analytics"])
-
-    PARQUET_DIR = Path("data/parquet/sales")
-    EXCEL_DIR = Path("data/excel/sales")  # simpan copy excel/CSV juga
-    PARQUET_DIR.mkdir(parents=True, exist_ok=True)
-    EXCEL_DIR.mkdir(parents=True, exist_ok=True)
+    tab1, tab2, tab03, tab3 = st.tabs([
+        "📥 Import Data",
+        "📊 Data Sales View",
+        "📊 Data Target View",
+        "📈 Analytics"
+    ])
 
     # ==================================================
-    # TAB 1 — IMPORT + UPDATE PARQUET EXISTING
+    # DIRECTORY SETUP
+    # ==================================================
+    PARQUET_DIR_SALES  = Path("data/parquet/sales")
+    PARQUET_DIR_TARGET = Path("data/parquet/target")
+
+    EXCEL_DIR_SALES  = Path("data/excel/sales")
+    EXCEL_DIR_TARGET = Path("data/excel/target")
+
+    for p in [
+        PARQUET_DIR_SALES, PARQUET_DIR_TARGET,
+        EXCEL_DIR_SALES, EXCEL_DIR_TARGET
+    ]:
+        p.mkdir(parents=True, exist_ok=True)
+
+    # ==================================================
+    # TAB 1 — IMPORT DATA (SALES / TARGET)
     # ==================================================
     with tab1:
         st.subheader("Upload Data → Gabungkan ke Dataset")
 
+        # =========================
+        # PILIH JENIS DATA
+        # =========================
+        data_type = st.radio(
+            "Jenis Data",
+            ["Sales", "Target"],
+            horizontal=True
+        )
+
+        PARQUET_DIR_ACTIVE = (
+            PARQUET_DIR_SALES if data_type == "Sales"
+            else PARQUET_DIR_TARGET
+        )
+
+        # =========================
+        # UPLOADER
+        # =========================
         uploaded_files = st.file_uploader(
-            "Upload file (Parquet / Excel / CSV)",
+            f"Upload file {data_type} (Parquet / Excel / CSV)",
             type=["parquet", "xlsx", "xls", "xlsb", "csv"],
             accept_multiple_files=True
         )
@@ -88,7 +117,7 @@ def sales():
         # =========================
         # APPEND ALL
         # =========================
-        if uploaded_files and st.button("🚀 Append ALL Files"):
+        if uploaded_files and st.button(f"🚀 Append ALL {data_type}"):
 
             for meta in st.session_state.files.values():
 
@@ -97,35 +126,42 @@ def sales():
                     df = pd.read_parquet(meta["file"])
                 elif meta["type"] == "excel":
                     df = pd.read_excel(meta["file"], sheet_name=meta["sheet"])
-                else:  # CSV
+                else:
                     df = pd.read_csv(meta["file"], delimiter=meta["delimiter"])
 
-                # 🔒 SAFE MODE: semua string
+                # 🔒 SAFE MODE
                 df = df.astype("string")
 
                 # metadata
                 df["_source_file"] = getattr(meta["file"], "name", "uploaded_data")
+                df["_data_type"] = data_type.lower()
 
-                # ---------- SAVE PART PARQUET ----------
-                out = PARQUET_DIR / f"part-{uuid.uuid4().hex}.parquet"
+                # ---------- SAVE PARQUET ----------
+                out = PARQUET_DIR_ACTIVE / f"part-{uuid.uuid4().hex}.parquet"
                 df.to_parquet(out, index=False)
 
-            st.success("✅ Semua file berhasil digabung ke dataset")
+            st.success(f"✅ Semua file {data_type} berhasil digabung")
             st.session_state.files = {}
 
         # =========================
-        # RESET DATASET
+        # RESET DATA (OPTIONAL)
         # =========================
         st.divider()
         st.subheader("🧹 Reset Dataset")
 
-        if st.button("⚠️ Hapus SEMUA Data Parquet & Excel"):
-            shutil.rmtree(PARQUET_DIR)
-            shutil.rmtree(EXCEL_DIR)
-            PARQUET_DIR.mkdir(parents=True, exist_ok=True)
-            EXCEL_DIR.mkdir(parents=True, exist_ok=True)
-            st.session_state.files = {}
-            st.success("✅ Dataset berhasil di-reset")
+        col1, col2 = st.columns(2)
+
+        with col1:
+            if st.button("⚠️ Reset Data Sales"):
+                shutil.rmtree(PARQUET_DIR_SALES, ignore_errors=True)
+                PARQUET_DIR_SALES.mkdir(parents=True, exist_ok=True)
+                st.success("✅ Data Sales di-reset")
+
+        with col2:
+            if st.button("⚠️ Reset Data Target"):
+                shutil.rmtree(PARQUET_DIR_TARGET, ignore_errors=True)
+                PARQUET_DIR_TARGET.mkdir(parents=True, exist_ok=True)
+                st.success("✅ Data Target di-reset")
 
     # ==================================================
     # TAB 2 — VIEW & DOWNLOAD (WITH CLEANING)
