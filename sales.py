@@ -323,9 +323,14 @@ def sales():
         def get_distinct(col):
             return (
                 con.execute(
-                    f'SELECT DISTINCT "{col}" FROM \'{PARQUET_DIR}/*.parquet\' WHERE "{col}" IS NOT NULL'
+                    f"""
+                    SELECT DISTINCT
+                        TRIM(UPPER("{col}")) AS val
+                    FROM '{PARQUET_DIR}/*.parquet'
+                    WHERE "{col}" IS NOT NULL
+                    """
                 )
-                .df()[col]
+                .df()["val"]
                 .dropna()
                 .sort_values()
                 .tolist()
