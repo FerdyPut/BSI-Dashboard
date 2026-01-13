@@ -998,7 +998,7 @@ def sales():
                             ELSE 0
                         END
                     ) AS sales_next
-                FROM 'data/parquet/target/*.parquet'
+                FROM "{parquet_path}"
                 GROUP BY SKU
             ),
         -- =========================
