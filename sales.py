@@ -836,8 +836,20 @@ def sales():
                     """, unsafe_allow_html=True
                 )
         st.badge(f"Periode Pivot: {month_labels[0]} → {month_labels[-1]} (Closed Month)", color='blue')
+
+        num_cols = [c for c in df.columns if c != "SKU"]
+
+        col_config = {
+            c: column_config.NumberColumn(
+                label=c,
+                format="%,.0f"   # ← pemisah ribuan
+            )
+            for c in num_cols
+        }
+
         st.dataframe(
             df,
+            column_config=col_config,
             use_container_width=True
         )
 
