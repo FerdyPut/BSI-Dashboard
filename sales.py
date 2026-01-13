@@ -939,6 +939,7 @@ def sales():
                 COALESCE(SUM(TRY_CAST(t.Value AS DOUBLE)), 0) AS Target
             FROM 'data/parquet/target/*.parquet' t
             WHERE CAST(t.TAHUN AS INTEGER) = {tahun_hist}
+            GROUP BY SKU
         ),
         
         pivoted AS (
