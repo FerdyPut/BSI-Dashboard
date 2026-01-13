@@ -409,7 +409,7 @@ def sales():
 
         fmt = st.selectbox(
             "Format",
-            ["Parquet (recommended)", "CSV"]
+            ["Parquet (recommended)", "CSV"], key='selectformattarget'
         )
 
         if st.button("⬇️ Generate Download", key='targetdownload'):
