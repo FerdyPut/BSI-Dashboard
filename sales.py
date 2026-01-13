@@ -844,7 +844,7 @@ def sales():
         sql = f"""
         WITH base AS (
                 SELECT
-                    SKU,
+                    UPPER(TRIM(SKU)) AS SKU,
                     REGION,
                     AREA,
                     DISTRIBUTOR,
