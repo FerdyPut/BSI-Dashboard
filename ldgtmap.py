@@ -243,7 +243,7 @@ def ldgtmap():
         # NORMALISASI DATA (ANTI ERROR)
         # =====================================================
         df['Tahun'] = pd.to_numeric(df['Thn'], errors='coerce')
-        df['Month'] = pd.to_numeric(df['Month'], errors='coerce')
+        df['Month'] = pd.to_numeric(df['MONTH'], errors='coerce')
         df['NET VALUE'] = pd.to_numeric(df['NET VALUE'], errors='coerce')
 
         df = df.dropna(subset=['Tahun', 'Month'])
@@ -253,13 +253,14 @@ def ldgtmap():
         # =====================================================
         st.subheader("🎛️ Filter Data")
 
-        colf1, colf2, colf3 = st.columns(3)
+        colf1, colf2, colf3, colf31 = st.columns(4)
         colf4, colf5 = st.columns(2)
 
         # ---------- UNIQUE VALUES ----------
         list_cabang = sorted(df['CABANG'].dropna().unique())
         list_dist   = sorted(df['DISTRIBUTOR'].dropna().unique())
         list_sku    = sorted(df['SKU'].dropna().unique())
+        list_ket   = sorted(df['KET'].dropna().unique())
 
         # ---------- MULTISELECT ----------
         with colf1:
@@ -270,6 +271,8 @@ def ldgtmap():
 
         with colf3:
             f_sku = st.multiselect("SKU", list_sku, default=list_sku)
+        with colf31:
+            f_ket = st.multiselect("KET", list_ket, default=list_ket)
 
         # ---------- RANGE SLIDER ----------
         min_year, max_year = int(df['Tahun'].min()), int(df['Tahun'].max())
