@@ -242,7 +242,7 @@ def ldgtmap():
         # =====================================================
         # NORMALISASI DATA (ANTI ERROR)
         # =====================================================
-        df['Tahun'] = pd.to_numeric(df['Tahun'], errors='coerce')
+        df['Tahun'] = pd.to_numeric(df['Thn'], errors='coerce')
         df['Month'] = pd.to_numeric(df['Month'], errors='coerce')
         df['NET VALUE'] = pd.to_numeric(df['NET VALUE'], errors='coerce')
 
