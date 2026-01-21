@@ -9,7 +9,7 @@ st.title(" BSI Dashboard")
 st.info("Selamat Datang di Website BSI Dashboard!")
 selected = option_menu(
     menu_title= None,
-    options=["Introduction","Dashboard Sales","Dashboard Mapping LD GT"],
+    options=["Introduction","Dashboard Sales HCO","Dashboard Mapping LD GT"],
     icons=["calendar", "book", "archive"],
     orientation="horizontal",
     styles={
@@ -51,7 +51,7 @@ if selected == "Introduction":
         </div>
 
     """, unsafe_allow_html=True)
-elif selected == "Dashboard Sales":
+elif selected == "Dashboard Sales HCO":
     import sales
     sales.sales()
 elif selected == "Dashboard Mapping LD GT":
