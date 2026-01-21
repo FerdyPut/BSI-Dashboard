@@ -301,6 +301,7 @@ def ldgtmap():
             df['CABANG'].isin(f_cabang) &
             df['DISTRIBUTOR'].isin(f_dist) &
             df['SKU'].isin(f_sku) &
+            df['KET'].isin(f_ket) &
             df['Tahun'].between(year_range[0], year_range[1]) &
             df['Month'].between(month_range[0], month_range[1])
         ]
