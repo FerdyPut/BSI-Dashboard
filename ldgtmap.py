@@ -209,171 +209,192 @@ def ldgtmap():
     # TAB 3: Analytics - Mapping (PyDeck)
     # =========================
     with tab3:
-        
+
         st.markdown(
-                        f"""
-                        <style>
-                        .hover-box1 {{
-                            border: 1px solid #233D4D;
-                            border-radius: 10px;
-                            padding: 5px;
-                            text-align: center;
-                            background-color: #233D4D;
-                            color: white;
-                            transition: 0.3s;
-                            position: relative;
-                            margin-top: 1px;
-                            font-size: 18px;
-                            font-family: 'Poppins', sans-serif;
-                        }}
-                        .hover-box1:hover {{
-                            background-color: #233D4D;
-                            transform: scale(1.01);
-                        }}
-                        .download-btn {{
-                            display: none;
-                            margin-top: 10px;
-                        }}
-                        .hover-box1:hover .download-btn {{
-                            display: block;
-                        }}
-                        a.download-link {{
-                            color: white;
-                            text-decoration: none;
-                            padding: 5px 10px;
-                            background-color: #233D4D;
-                            border-radius: 5px;
-                            font-weight: bold;
-                        }}
-                        </style>
-
-                        <div class="hover-box1">
-                            <strong>MAPPING SALES LDGT BY AREA SUMATERA</strong>
-                        </div>
-                        <p></p>
-                        """, unsafe_allow_html=True
-                    )
-
-        if 'df' in st.session_state:
-            df = st.session_state['df']
-
-            # =========================
-            # Lookup CABANG → lat/lon
-            # =========================
-            cabang_lookup = {
-                "Banda Aceh": (5.5483, 95.3238),
-                "Bengkulu": (-3.8000, 102.2650),
-                "Lampung": (-5.4296, 105.2620),
-                "Jambi": (-1.6100, 103.6100),
-                "Kotabumi": (-5.4547, 105.7716),
-                "Lhokseumawe": (5.1919, 97.1456),
-                "Medan": (3.5952, 98.6722),
-                "Metro": (-5.1156, 105.2983),
-                "Padang": (-0.9491, 100.3543),
-                "Palembang": (-2.9761, 104.7754),
-                "Pekanbaru": (0.5333, 101.4500),
-                "Pematang Siantar": (2.9639, 99.0621)
+            """
+            <style>
+            .hover-box1 {
+                border: 1px solid #233D4D;
+                border-radius: 10px;
+                padding: 6px;
+                text-align: center;
+                background-color: #233D4D;
+                color: white;
+                font-size: 18px;
+                font-family: 'Poppins', sans-serif;
             }
+            </style>
 
-            # =========================
-            # Tambah lat/lon
-            # =========================
-            if 'lat' not in df.columns or 'lon' not in df.columns:
-                df['lat'] = df['CABANG'].map(lambda x: cabang_lookup.get(x, (None, None))[0])
-                df['lon'] = df['CABANG'].map(lambda x: cabang_lookup.get(x, (None, None))[1])
-                st.session_state['df'] = df
+            <div class="hover-box1">
+                <strong>MAPPING SALES LDGT BY AREA SUMATERA</strong>
+            </div>
+            <p></p>
+            """,
+            unsafe_allow_html=True
+        )
 
-            # =========================
-            # Clean & aggregate
-            # =========================
-            df['NET VALUE'] = pd.to_numeric(df['NET VALUE'], errors='coerce')
-
-            agg = (
-                df.dropna(subset=['lat', 'lon'])
-                .groupby(['CABANG', 'KET', 'lat', 'lon'], as_index=False)
-                .agg(
-                    jumlah=('NET VALUE', 'count'),
-                    total_value=('NET VALUE', 'sum')
-                )
-            )
-
-            if agg.empty:
-                st.warning("Data tidak cukup untuk ditampilkan.")
-                st.stop()
-
-            # =========================
-            # Warna berdasarkan KET
-            # =========================
-            agg['KET'] = (
-                    agg['KET']
-                    .astype(str)
-                    .str.strip()
-                    .str.upper()
-                )
-            color_map = {
-                "SELL IN": [220, 38, 38, 180],
-                "SELL OUT":  [234, 179, 8, 180]
-            }
-
-            agg['color'] = agg['KET'].map(color_map)
-            # =========================
-            # Bubble Layer
-            # =========================
-            agg['radius'] = np.sqrt(agg['jumlah']) * 500
-
-            # Pastikan total_value numeric
-            agg['total_value'] = pd.to_numeric(agg['total_value'], errors='coerce').fillna(0)
-            # === BUAT value_rp SEBELUM layer ===
-            agg['value_rp'] = (
-                agg['total_value']
-                .fillna(0)
-                .astype(float)
-                .round(0)
-                .astype(int)
-                .apply(lambda x: f"Rp {x:,.0f}".replace(",", "."))
-            )
-            layer = pdk.Layer(
-                "ScatterplotLayer",
-                data=agg,
-                get_position='[lon, lat]',
-                get_radius='radius',
-                get_fill_color='color',
-                pickable=True,
-                auto_highlight=True
-            )
-
-            # =========================
-            # View State (lebih dekat)
-            # =========================
-            view_state = pdk.ViewState(
-                latitude=agg['lat'].mean(),
-                longitude=agg['lon'].mean(),
-                zoom=6.5,
-                pitch=0
-            )
-
-            # =========================
-            # Tooltip
-            # =========================
-            tooltip = {
-                "html": """
-                <b>{CABANG}</b><br/>
-                DATA: {KET}<br/>
-                NET VALUE: {value_rp}
-                """,
-                "style": {"color": "white"}
-            }
-
-            # =========================
-            # Render
-            # =========================
-            st.pydeck_chart(
-                pdk.Deck(
-                    layers=[layer],
-                    initial_view_state=view_state,
-                    tooltip=tooltip
-                )
-            )
-
-        else:
+        if 'df' not in st.session_state:
             st.info("Silakan upload file dulu di tab Upload Data.")
+            st.stop()
+
+        df = st.session_state['df'].copy()
+
+        # =====================================================
+        # NORMALISASI DATA (ANTI ERROR)
+        # =====================================================
+        df['Tahun'] = pd.to_numeric(df['Tahun'], errors='coerce')
+        df['Month'] = pd.to_numeric(df['Month'], errors='coerce')
+        df['NET VALUE'] = pd.to_numeric(df['NET VALUE'], errors='coerce')
+
+        df = df.dropna(subset=['Tahun', 'Month'])
+
+        # =====================================================
+        # FILTER SECTION
+        # =====================================================
+        st.subheader("🎛️ Filter Data")
+
+        colf1, colf2, colf3 = st.columns(3)
+        colf4, colf5 = st.columns(2)
+
+        # ---------- UNIQUE VALUES ----------
+        list_cabang = sorted(df['CABANG'].dropna().unique())
+        list_dist   = sorted(df['DISTRIBUTOR'].dropna().unique())
+        list_sku    = sorted(df['SKU'].dropna().unique())
+
+        # ---------- MULTISELECT ----------
+        with colf1:
+            f_cabang = st.multiselect("Cabang", list_cabang, default=list_cabang)
+
+        with colf2:
+            f_dist = st.multiselect("Distributor", list_dist, default=list_dist)
+
+        with colf3:
+            f_sku = st.multiselect("SKU", list_sku, default=list_sku)
+
+        # ---------- RANGE SLIDER ----------
+        min_year, max_year = int(df['Tahun'].min()), int(df['Tahun'].max())
+        min_month, max_month = 1, 12
+
+        with colf4:
+            year_range = st.slider(
+                "Range Tahun",
+                min_value=min_year,
+                max_value=max_year,
+                value=(min_year, max_year)
+            )
+
+        with colf5:
+            month_range = st.slider(
+                "Range Month",
+                min_value=min_month,
+                max_value=max_month,
+                value=(min_month, max_month)
+            )
+
+        # =====================================================
+        # APPLY FILTER
+        # =====================================================
+        df = df[
+            df['CABANG'].isin(f_cabang) &
+            df['DISTRIBUTOR'].isin(f_dist) &
+            df['SKU'].isin(f_sku) &
+            df['Tahun'].between(year_range[0], year_range[1]) &
+            df['Month'].between(month_range[0], month_range[1])
+        ]
+
+        if df.empty:
+            st.warning("Data kosong setelah filter.")
+            st.stop()
+
+        # =====================================================
+        # LOOKUP CABANG → LAT/LON
+        # =====================================================
+        cabang_lookup = {
+            "Banda Aceh": (5.5483, 95.3238),
+            "Bengkulu": (-3.8000, 102.2650),
+            "Lampung": (-5.4296, 105.2620),
+            "Jambi": (-1.6100, 103.6100),
+            "Kotabumi": (-5.4547, 105.7716),
+            "Lhokseumawe": (5.1919, 97.1456),
+            "Medan": (3.5952, 98.6722),
+            "Metro": (-5.1156, 105.2983),
+            "Padang": (-0.9491, 100.3543),
+            "Palembang": (-2.9761, 104.7754),
+            "Pekanbaru": (0.5333, 101.4500),
+            "Pematang Siantar": (2.9639, 99.0621)
+        }
+
+        df['lat'] = df['CABANG'].map(lambda x: cabang_lookup.get(x, (None, None))[0])
+        df['lon'] = df['CABANG'].map(lambda x: cabang_lookup.get(x, (None, None))[1])
+
+        # =====================================================
+        # AGGREGATION
+        # =====================================================
+        agg = (
+            df.dropna(subset=['lat', 'lon'])
+            .groupby(['CABANG', 'KET', 'lat', 'lon'], as_index=False)
+            .agg(
+                jumlah=('NET VALUE', 'count'),
+                total_value=('NET VALUE', 'sum')
+            )
+        )
+
+        if agg.empty:
+            st.warning("Data tidak cukup untuk ditampilkan.")
+            st.stop()
+
+        # =====================================================
+        # STYLE MAP
+        # =====================================================
+        agg['KET'] = agg['KET'].astype(str).str.strip().str.upper()
+
+        color_map = {
+            "SELL IN":  [220, 38, 38, 180],
+            "SELL OUT": [234, 179, 8, 180]
+        }
+
+        agg['color'] = agg['KET'].map(color_map)
+        agg['radius'] = np.sqrt(agg['jumlah']) * 500
+
+        agg['value_rp'] = (
+            agg['total_value']
+            .fillna(0)
+            .astype(int)
+            .apply(lambda x: f"Rp {x:,.0f}".replace(",", "."))
+        )
+
+        # =====================================================
+        # PYDECK LAYER
+        # =====================================================
+        layer = pdk.Layer(
+            "ScatterplotLayer",
+            data=agg,
+            get_position='[lon, lat]',
+            get_radius='radius',
+            get_fill_color='color',
+            pickable=True,
+            auto_highlight=True
+        )
+
+        view_state = pdk.ViewState(
+            latitude=agg['lat'].mean(),
+            longitude=agg['lon'].mean(),
+            zoom=6.5
+        )
+
+        tooltip = {
+            "html": """
+                <b>{CABANG}</b><br/>
+                TYPE: {KET}<br/>
+                NET VALUE: {value_rp}
+            """,
+            "style": {"color": "white"}
+        }
+
+        st.pydeck_chart(
+            pdk.Deck(
+                layers=[layer],
+                initial_view_state=view_state,
+                tooltip=tooltip
+            )
+        )
